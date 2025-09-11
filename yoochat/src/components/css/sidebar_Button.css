@@ -1,0 +1,28 @@
+.sidebar_Button {
+  height: 50px;
+  width: 50px;
+  padding: 10px;
+  background-color: white;
+  color: black;
+  border: none;
+  border-radius: 100%;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+  font-size: 10px;
+}
+
+.sidebar_Button:hover {
+  background-color: rgb(140, 77, 199);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* .container {
+   border: 1px solid black; 
+} */
+
+.buttonIcon {
+  height: 30px;
+}

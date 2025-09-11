@@ -1,0 +1,35 @@
+.container {
+  /* border: solid 2px black; */
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.heading {
+  /* border: solid 2px black; */
+  padding: 10px;
+  height: 70px;
+  font-size: 50px;
+  font-weight: bold;
+}
+
+.chatList {
+  display: flex;
+  flex-direction: column;
+}
+
+.searchContainer {
+  display: flex;
+  border: solid 0px black;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+}
+
+.seachchat {
+  flex: 1;
+  height: 30px;
+  border-radius: 50px;
+  padding: 5px;
+}

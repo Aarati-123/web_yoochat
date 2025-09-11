@@ -82,7 +82,9 @@ export default function ChatScreen() {
   // Unfriend handler
   const handleUnfriend = async () => {
     if (
-      window.confirm(`Are you sure you want to unfriend ${friendName || "this user"}?`)
+      window.confirm(
+        `Are you sure you want to unfriend ${friendName || "this user"}?`
+      )
     ) {
       try {
         const res = await fetch(`${baseURL}/friendship/unfriend`, {
@@ -131,7 +133,9 @@ export default function ChatScreen() {
 
       {/* Messages */}
       <div style={styles.messagesContainer}>
-        {messages.length === 0 && <p style={styles.noMessages}>No messages yet</p>}
+        {messages.length === 0 && (
+          <p style={styles.noMessages}>No messages yet</p>
+        )}
         {messages.map((msg) => (
           <div key={msg.message_id || msg.timestamp} style={styles.messageRow}>
             {msg.profile_image && (
@@ -142,7 +146,9 @@ export default function ChatScreen() {
               />
             )}
             <div>
-              <div style={styles.senderName}>{msg.sender_name || "Unknown"}</div>
+              <div style={styles.senderName}>
+                {msg.sender_name || "Unknown"}
+              </div>
               <div style={styles.messageBubble}>{msg.content}</div>
             </div>
           </div>

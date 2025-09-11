@@ -9,6 +9,15 @@ const pool = new Pool({
   database: process.env.db_name,
 });
 
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error("DB connection error:", err.stack);
+  } else {
+    console.log("Database connected successfully!");
+    release(); // release the client back to pool
+  }
+});
+
 // -------------------- Validations --------------------
 const isValidEmail = (email) => {
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|io|net|org|edu)$/;
@@ -54,7 +63,12 @@ const findUserById = async (user_id) => {
   return result.rows[0];
 };
 
-const createUser = async (username, email, password, profileImagePath = null) => {
+const createUser = async (
+  username,
+  email,
+  password,
+  profileImagePath = null
+) => {
   const result = await pool.query(
     "INSERT INTO users (username, email, password, profile_image) VALUES ($1, $2, $3, $4) RETURNING user_id, username, email, profile_image",
     [username, email, password, profileImagePath]
@@ -153,7 +167,12 @@ const getSentFriendRequests = async (sender_id) => {
 };
 
 // -------------------- Messaging --------------------
-const sendMessage = async (sender_id, receiver_id, content, is_media = false) => {
+const sendMessage = async (
+  sender_id,
+  receiver_id,
+  content,
+  is_media = false
+) => {
   const result = await pool.query(
     "INSERT INTO message (sender_id, receiver_id, content, is_media) VALUES ($1, $2, $3, $4) RETURNING message_id, message_time",
     [sender_id, receiver_id, content, is_media]
@@ -176,12 +195,10 @@ const getConversation = async (user1_id, user2_id) => {
 // -------------------- Search Users --------------------
 const searchUsers = async (searchText, currentUserId = null) => {
   try {
-   
-    
     if (!searchText || searchText.trim() === "") return [];
 
     let values = ["%" + searchText.toLowerCase() + "%"];
-    
+
     let query = `
       SELECT user_id, username, profile_image
       FROM users
@@ -196,7 +213,7 @@ const searchUsers = async (searchText, currentUserId = null) => {
     query += " ORDER BY username ASC LIMIT 20";
 
     const result = await pool.query(query, values);
-    
+
     return result.rows;
   } catch (err) {
     console.error("searchUsers Model Error:", err);
@@ -249,6 +266,7 @@ const updateUser = async (user_id, newUsername, newProfileImagePath) => {
 
 module.exports = {
   isValidEmail,
+  pool,
   isValidPassword,
   findUserByEmail,
   findUserByUsername,
@@ -269,5 +287,5 @@ module.exports = {
   getConversation,
   searchUsers,
   BlockedUser,
-  updateUser
+  updateUser,
 };
