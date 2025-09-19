@@ -29,7 +29,7 @@ export default function Login() {
         localStorage.setItem("profileImage", data.profileImage || "");
 
         alert("Login successful!");
-        navigate("/homepage");
+        navigate("/home");
       } else {
         alert("Token missing in response. Please try again.");
       }

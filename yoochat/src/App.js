@@ -1,18 +1,11 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./screens/Login";
 import SignUp from "./screens/SignUp";
 import Home from "./screens/Home";
-import HomePage from "./screens/HomePage";
 import ChatScreen from "./screens/ChatScreen";
 import Logout from "./screens/Logout";
-import Sidebar from "./screens/Sidebar";
 import mainScreen from "./screens/mainScreen";
 
 export default function App() {
@@ -23,7 +16,6 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/homepage" element={<HomePage />} />
         <Route path="/chat/:friendId" element={<ChatScreen />} />
         <Route path="/logout" element={<Logout />} />
       </Routes>

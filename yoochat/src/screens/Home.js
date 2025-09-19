@@ -1,325 +1,224 @@
+// src/screens/Home.js
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import IconMenu from "../components/IconMenu";
+import TabNav from "../components/TabNav";
+import UserList from "../components/UserList";
+import ChatWindow from "../components/ChatWindow";
 
-import ChatScreen from "./ChatScreen";
+import "./Home.css";
 
-export default function Home() {
-  const navigate = useNavigate();
+import {
+  getFriends,
+  getPendingRequests,
+  getSentRequests,
+  searchUsers,
+} from "../api/api";
 
-  const storedToken = localStorage.getItem("token");
-  const storedUsername = localStorage.getItem("username");
-  const storedUserId = localStorage.getItem("userId");
-  const storedProfileImage = localStorage.getItem("profileImage");
-
+function Home() {
+  const [activeSidebar, setActiveSidebar] = useState("home"); // Which icon is clicked
   const [activeTab, setActiveTab] = useState("Friends");
+  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState([]);
   const [friends, setFriends] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [receivedRequests, setReceivedRequests] = useState([]);
 
-  const baseURL = "http://localhost:3000";
+  const token = localStorage.getItem("token");
+  const username = localStorage.getItem("username"); // logged-in username
 
-  if (!storedToken || !storedUsername || !storedUserId) {
-    navigate("/login");
-  }
-
-  const api = axios.create({
-    baseURL,
-    headers: { Authorization: `Bearer ${storedToken}` },
-  });
-
-  const myAvatarUri = storedProfileImage
-    ? `${baseURL}/${storedProfileImage}`
-    : null;
-
-  // Fetch Friends, Pending, Sent requests
-  const loadFriends = async () => {
-    try {
-      const res = await api.get(
-        `/friendship/list/${encodeURIComponent(storedUsername)}`
-      );
-      const data = (res.data.friends || []).map((u) => ({
-        id: u.user_id.toString(),
-        username: u.username,
-        profileImage: u.profile_image ? `${baseURL}/${u.profile_image}` : null,
-      }));
-      setFriends(data);
-    } catch (err) {
-      alert(
-        "Failed to load friends: " +
-          (err.response?.data?.message || err.message)
-      );
-    }
-  };
-
-  const loadPending = async () => {
-    try {
-      const res = await api.get("/friendship/pendingRequests");
-      const data = (res.data.pending_requests || []).map((r) => ({
-        id: r.sender_id.toString(),
-        username: r.username,
-        profileImage: r.profile_image ? `${baseURL}/${r.profile_image}` : null,
-      }));
-      setPendingRequests(data);
-    } catch (err) {
-      alert(
-        "Failed to load pending requests: " +
-          (err.response?.data?.message || err.message)
-      );
-    }
-  };
-
-  const loadSentRequests = async () => {
-    try {
-      const res = await api.get("/friendship/sentRequests");
-      const outgoing = (res.data.sent_requests || []).map((r) => ({
-        id: r.receiver_id.toString(),
-        username: r.username,
-        profileImage: r.profile_image ? `${baseURL}/${r.profile_image}` : null,
-      }));
-      setSentRequests(outgoing);
-    } catch (err) {
-      console.error("Error loading sent requests:", err.message);
-    }
-  };
-
-  const loadBlockedUsers = async () => {
-    try {
-      const res = await api.get("/users/blocked");
-      const blocked = (res.data.blocked_users || []).map((u) => ({
-        id: u.user_id.toString(),
-        username: u.username,
-        profileImage: u.profile_image ? `${baseURL}/${u.profile_image}` : null,
-      }));
-      setBlockedUsers(blocked);
-    } catch (err) {
-      console.error("Failed to load blocked users:", err.message);
-    }
-  };
-
+  // Load friends + pending when tab changes (only when profile is active)
   useEffect(() => {
-    loadFriends();
-    loadPending();
-    loadSentRequests();
-    loadBlockedUsers();
-  }, []);
+    if (activeSidebar !== "profile") return;
 
-  const handleSearch = async (text) => {
-    setSearchText(text);
-    const trimmedText = text.trim();
-    if (!trimmedText) {
-      setSearchResults([]);
-      return;
+    async function loadData() {
+      try {
+        if (activeTab === "Friends") {
+          if (!username) return;
+          const res = await getFriends(username);
+          setFriends(res.friends || []);
+        } else if (activeTab === "Pending") {
+          const received = await getPendingRequests();
+          const sent = await getSentRequests();
+          setReceivedRequests(received.pending_requests || []);
+          setSentRequests(sent.sent_requests || []);
+        }
+      } catch (err) {
+        console.error("Error loading data:", err);
+      }
+    }
+    loadData();
+  }, [activeTab, activeSidebar, username]);
+
+  // Live search for Add Friend tab
+  useEffect(() => {
+    if (activeSidebar !== "profile" || activeTab !== "Add Friend") return;
+
+    async function doSearch() {
+      if (search.trim().length < 1) {
+        setUsers([]);
+        return;
+      }
+      try {
+        const res = await searchUsers(search, token);
+        setUsers(res.users || []);
+      } catch (err) {
+        console.error("Search error:", err);
+      }
     }
 
-    try {
-      const res = await api.get(
-        `/users/search?search=${encodeURIComponent(trimmedText)}`
-      );
-      setSearchResults(res.data.users);
-    } catch (err) {
-      setSearchResults([]);
-    }
-  };
+    const delay = setTimeout(doSearch, 300);
+    return () => clearTimeout(delay);
+  }, [search, activeTab, activeSidebar, token]);
 
-  const handleSendRequest = async (receiverId) => {
-    if (receiverId === storedUserId) {
-      alert("You cannot add yourself.");
-      return;
-    }
-    try {
-      await api.post("/friendship/sendRequest", { receiver_id: receiverId });
-      alert("Friend request sent");
-      setSentRequests((prev) => [...prev, receiverId.toString()]);
-      loadPending();
-    } catch (err) {
-      alert(
-        "Failed to send friend request: " +
-          (err.response?.data?.message || err.message)
-      );
-    }
-  };
-
-  const handleCancelRequest = async (receiverId) => {
-    try {
-      await api.post("/friendship/cancelRequest", { receiver_id: receiverId });
-      alert("Friend request canceled");
+  // Handle friend actions
+  const handleActionComplete = async (user, actionType) => {
+    if (actionType === "sent") {
+      setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
+      setSentRequests((prev) => [...prev, user]);
+    } else if (actionType === "cancelled") {
       setSentRequests((prev) =>
-        prev.filter((id) => id !== receiverId.toString())
+        prev.filter((u) => u.user_id !== user.user_id)
       );
-      loadPending();
-    } catch (err) {
-      alert(
-        "Failed to cancel friend request: " +
-          (err.response?.data?.message || err.message)
+    } else if (actionType === "accepted") {
+      setReceivedRequests((prev) =>
+        prev.filter((u) => u.user_id !== user.user_id)
       );
-    }
-  };
-
-  const handleAcceptRequest = async (senderId) => {
-    try {
-      await api.post("/friendship/acceptRequest", { sender_id: senderId });
-      alert("Friend request accepted");
-      loadFriends();
-      loadPending();
-    } catch (err) {
-      alert(
-        "Failed to accept friend request: " +
-          (err.response?.data?.message || err.message)
+      // Refresh friends from server
+      try {
+        if (username) {
+          const res = await getFriends(username);
+          setFriends(res.friends || []);
+        }
+      } catch (err) {
+        console.error("Error refreshing friends:", err);
+      }
+    } else if (actionType === "declined") {
+      setReceivedRequests((prev) =>
+        prev.filter((u) => u.user_id !== user.user_id)
       );
     }
   };
 
-  const handleDeclineRequest = async (senderId) => {
-    try {
-      await api.post("/friendship/declineRequest", { sender_id: senderId });
-      alert("Friend request declined");
-      loadPending();
-    } catch (err) {
-      alert(
-        "Failed to decline request: " +
-          (err.response?.data?.message || err.message)
-      );
-    }
+  // Utility: safe sorting with search match first
+  const sortBySearchMatch = (arr) => {
+    if (!search) return arr;
+    const lowerSearch = search.toLowerCase();
+    return [...arr].sort((a, b) => {
+      const aName = (a.username || "").toLowerCase();
+      const bName = (b.username || "").toLowerCase();
+      const aIndex = aName.indexOf(lowerSearch);
+      const bIndex = bName.indexOf(lowerSearch);
+      const aScore = aIndex === -1 ? Infinity : aIndex;
+      const bScore = bIndex === -1 ? Infinity : bIndex;
+      return aScore - bScore;
+    });
   };
 
-  const handleUnblockUser = async (userId) => {
-    try {
-      await api.post("/users/unblock", { blocked_id: userId });
-      alert("User unblocked");
-      loadBlockedUsers();
-    } catch (err) {
-      alert(
-        "Failed to unblock user: " +
-          (err.response?.data?.message || err.message)
-      );
-    }
-  };
-
-  const renderItem = (item) => {
-    const isSelf = item.id === storedUserId;
-    const alreadySent = sentRequests.includes(item.id.toString());
-
-    const actionBtn =
-      activeTab === "Requests" ? (
-        <>
-          <button onClick={() => handleAcceptRequest(item.id)}>Accept</button>
-          <button onClick={() => handleDeclineRequest(item.id)}>Decline</button>
-        </>
-      ) : activeTab === "Search" ? (
-        isSelf ? (
-          <span>It's You!</span>
-        ) : alreadySent ? (
-          <button onClick={() => handleCancelRequest(item.id)}>
-            Cancel Request
-          </button>
-        ) : (
-          <button onClick={() => handleSendRequest(item.id)}>Add Friend</button>
+  // Filtered and sorted lists
+  const filteredFriends =
+    activeSidebar === "profile" && activeTab === "Friends"
+      ? sortBySearchMatch(
+          friends.filter((u) =>
+            (u.username || "").toLowerCase().includes(search.toLowerCase())
+          )
         )
-      ) : activeTab === "Sent" ? (
-        <button onClick={() => handleCancelRequest(item.id)}>
-          Cancel Request
-        </button>
-      ) : activeTab === "Blocked" ? (
-        <button onClick={() => handleUnblockUser(item.id)}>Unblock</button>
-      ) : null;
+      : [];
 
-    return (
-      <div
-        key={item.id}
-        style={{ display: "flex", alignItems: "center", marginBottom: 10 }}
-      >
-        {item.profileImage && (
-          <img
-            src={item.profileImage}
-            alt=""
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              marginRight: 10,
-            }}
-          />
-        )}
-        <span style={{ flex: 1 }}>{item.username}</span>
-        {actionBtn}
-      </div>
-    );
-  };
+  const filteredUsers =
+    activeSidebar === "profile" && activeTab === "Add Friend"
+      ? users.filter(
+          (u) =>
+            !friends.some((f) => f.user_id === u.user_id) &&
+            !sentRequests.some((s) => s.user_id === u.user_id) &&
+            !receivedRequests.some((r) => r.user_id === u.user_id)
+        )
+      : [];
 
-  const currentList =
-    activeTab === "Friends"
-      ? friends
-      : activeTab === "Requests"
-      ? pendingRequests
-      : activeTab === "Sent"
-      ? sentRequests
-      : activeTab === "Blocked"
-      ? blockedUsers
-      : searchResults;
+  const filteredPending =
+    activeSidebar === "profile" && activeTab === "Pending"
+      ? sortBySearchMatch(
+          [...receivedRequests, ...sentRequests].filter((u) =>
+            (u.username || "").toLowerCase().includes(search.toLowerCase())
+          )
+        )
+      : [];
 
   return (
-    <div style={{ padding: 20 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {myAvatarUri && (
-            <img
-              src={myAvatarUri}
-              alt="Avatar"
-              style={{ width: 40, height: 40, borderRadius: "50%" }}
+    <div className="homeContainer">
+      <div className="sidebar">
+        {/* Pass onSelect to handle clicks */}
+        <IconMenu onSelect={setActiveSidebar} />
+      </div>
+
+      <div className="middlePanel">
+        {activeSidebar === "profile" ? (
+          <>
+            <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+            <input
+              type="text"
+              placeholder={
+                activeTab === "Add Friend"
+                  ? "Search users..."
+                  : "Search in users..."
+              }
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="searchInput"
             />
-          )}
-          <h2>Welcome, {storedUsername}!</h2>
-        </div>
-        <button
-          onClick={() => {
-            localStorage.clear();
-            navigate("/login");
-          }}
-        >
-          Logout
-        </button>
-      </div>
 
-      <div style={{ display: "flex", gap: 20, marginBottom: 10 }}>
-        {["Friends", "Requests", "Sent", "Blocked", "Search"].map((tab) => (
-          <button
-            key={tab}
-            style={{ fontWeight: activeTab === tab ? "bold" : "normal" }}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+            {activeTab === "Friends" && (
+              <UserList
+                users={filteredFriends}
+                type="friends"
+                token={token}
+                onActionComplete={handleActionComplete}
+              />
+            )}
 
-      {activeTab === "Search" && (
-        <input
-          type="text"
-          value={searchText}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search by username..."
-          style={{ padding: "8px", width: "100%", marginBottom: "20px" }}
-        />
-      )}
+            {activeTab === "Add Friend" && (
+              <UserList
+                users={filteredUsers}
+                type="add"
+                token={token}
+                friends={friends}
+                sentRequests={sentRequests}
+                receivedRequests={receivedRequests}
+                onActionComplete={handleActionComplete}
+              />
+            )}
 
-      <div style={{ marginTop: 20 }}>
-        {currentList.length > 0 ? (
-          currentList.map(renderItem)
+            {activeTab === "Pending" && (
+              <>
+                <div className="pendingCounts">
+                  <span>Sent: {sentRequests.length}</span> |{" "}
+                  <span>Received: {receivedRequests.length}</span>
+                </div>
+                <UserList
+                  users={filteredPending}
+                  type="pending"
+                  token={token}
+                  onActionComplete={handleActionComplete}
+                />
+              </>
+            )}
+          </>
         ) : (
-          <p>No {activeTab} found.</p>
+          <div style={{ textAlign: "center", marginTop: "50px", color: "#666" }}>
+            {/* Blank page for other icons */}
+            <h2>{activeSidebar.toUpperCase()}</h2>
+            <p>Content will appear here later.</p>
+          </div>
         )}
+      </div>
+
+      <div className="chatPanel">
+        <ChatWindow
+          user={{ name: "Ralph Edwards", avatar: "/avatar2.png" }}
+        />
       </div>
     </div>
   );
 }
+
+export default Home;
