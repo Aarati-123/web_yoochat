@@ -4,6 +4,10 @@ import IconMenu from "../components/IconMenu";
 import TabNav from "../components/TabNav";
 import UserList from "../components/UserList";
 import ChatWindow from "../components/ChatWindow";
+import SettingsPanel from "../components/SettingsPanel";
+import EditProfile from "../components/EditProfile";
+import ContributeFeed from "../components/ContributeFeed";
+import FriendsFeed from "../components/FriendsFeed"; 
 
 import "./Home.css";
 
@@ -15,13 +19,14 @@ import {
 } from "../api/api";
 
 function Home() {
-  const [activeSidebar, setActiveSidebar] = useState("home"); // Which icon is clicked
+  const [activeSidebar, setActiveSidebar] = useState("feed"); // Which icon is clicked
   const [activeTab, setActiveTab] = useState("Friends");
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
   const [friends, setFriends] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
+  const [selectedSetting, setSelectedSetting] = useState(null);
 
   const token = localStorage.getItem("token");
   const username = localStorage.getItem("username"); // logged-in username
@@ -83,7 +88,6 @@ function Home() {
       setReceivedRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
       );
-      // Refresh friends from server
       try {
         if (username) {
           const res = await getFriends(username);
@@ -146,77 +150,111 @@ function Home() {
   return (
     <div className="homeContainer">
       <div className="sidebar">
-        {/* Pass onSelect to handle clicks */}
         <IconMenu onSelect={setActiveSidebar} />
       </div>
 
-      <div className="middlePanel">
-        {activeSidebar === "profile" ? (
-          <>
-            <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
-
-            <input
-              type="text"
-              placeholder={
-                activeTab === "Add Friend"
-                  ? "Search users..."
-                  : "Search in users..."
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="searchInput"
-            />
-
-            {activeTab === "Friends" && (
-              <UserList
-                users={filteredFriends}
-                type="friends"
-                token={token}
-                onActionComplete={handleActionComplete}
-              />
-            )}
-
-            {activeTab === "Add Friend" && (
-              <UserList
-                users={filteredUsers}
-                type="add"
-                token={token}
-                friends={friends}
-                sentRequests={sentRequests}
-                receivedRequests={receivedRequests}
-                onActionComplete={handleActionComplete}
-              />
-            )}
-
-            {activeTab === "Pending" && (
+      {/* If feed is selected, show only feed panel */}
+      {activeSidebar === "feed" ? (
+        <div className="feedPanel">
+          <FriendsFeed token={token} />
+        </div>
+      ) : (
+        <>
+          <div className="middlePanel">
+            {activeSidebar === "profile" ? (
               <>
-                <div className="pendingCounts">
-                  <span>Sent: {sentRequests.length}</span> |{" "}
-                  <span>Received: {receivedRequests.length}</span>
-                </div>
-                <UserList
-                  users={filteredPending}
-                  type="pending"
-                  token={token}
-                  onActionComplete={handleActionComplete}
-                />
-              </>
-            )}
-          </>
-        ) : (
-          <div style={{ textAlign: "center", marginTop: "50px", color: "#666" }}>
-            {/* Blank page for other icons */}
-            <h2>{activeSidebar.toUpperCase()}</h2>
-            <p>Content will appear here later.</p>
-          </div>
-        )}
-      </div>
+                <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="chatPanel">
-        <ChatWindow
-          user={{ name: "Ralph Edwards", avatar: "/avatar2.png" }}
-        />
-      </div>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="searchInput"
+                />
+
+                {activeTab === "Friends" && (
+                  <UserList
+                    users={filteredFriends}
+                    type="friends"
+                    token={token}
+                    onActionComplete={handleActionComplete}
+                  />
+                )}
+
+                {activeTab === "Add Friend" && (
+                  <UserList
+                    users={filteredUsers}
+                    type="add"
+                    token={token}
+                    friends={friends}
+                    sentRequests={sentRequests}
+                    receivedRequests={receivedRequests}
+                    onActionComplete={handleActionComplete}
+                  />
+                )}
+
+                {activeTab === "Pending" && (
+                  <>
+                    <div className="pendingCounts">
+                      <span>Sent: {sentRequests.length}</span> |{" "}
+                      <span>Received: {receivedRequests.length}</span>
+                    </div>
+                    <UserList
+                      users={filteredPending}
+                      type="pending"
+                      token={token}
+                      onActionComplete={handleActionComplete}
+                    />
+                  </>
+                )}
+              </>
+            ) : activeSidebar === "settings" ? (
+              <SettingsPanel onSelectSetting={setSelectedSetting} />
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  marginTop: "50px",
+                  color: "#666",
+                }}
+              >
+                <h2>{activeSidebar.toUpperCase()}</h2>
+                <p>Content will appear here later.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="chatPanel">
+            {activeSidebar === "settings" ? (
+              <div className="settingsContent">
+                {selectedSetting === "EditProfile" && (
+                  <EditProfile token={token} />
+                )}
+                {selectedSetting === "ContributeFeed" && (
+                  <ContributeFeed token={token} />
+                )}
+                {selectedSetting === "BlockedUsers" && (
+                  <p>Blocked users list here.</p>
+                )}
+                {selectedSetting === "ArchivedChats" && (
+                  <p>Archived chats here.</p>
+                )}
+                {selectedSetting === "Logout" && <p>You have been logged out.</p>}
+                {!selectedSetting && (
+                  <p style={{ color: "#888" }}>
+                    Select an option from settings 😎.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <ChatWindow
+                user={{ name: "Ralph Edwards", avatar: "/avatar2.png" }}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
