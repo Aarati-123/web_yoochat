@@ -145,3 +145,4 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
 };
 
 export default FriendActions;
+
