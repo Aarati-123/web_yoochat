@@ -70,3 +70,4 @@ const UserList = ({ users, type, token, onActionComplete, sentRequests, friends,
 };
 
 export default UserList;
+
