@@ -14,7 +14,7 @@ pool.connect((err, client, release) => {
     console.error("DB connection error:", err.stack);
   } else {
     console.log("Database connected successfully!");
-    release(); // release the client back to pool
+    release();
   }
 });
 
@@ -54,7 +54,6 @@ const findUserIdByUsername = async (username) => {
   return result.rows[0]?.user_id;
 };
 
-// Get user by ID
 const findUserById = async (user_id) => {
   const result = await pool.query(
     "SELECT user_id, username, email, profile_image FROM users WHERE user_id = $1",
@@ -63,12 +62,7 @@ const findUserById = async (user_id) => {
   return result.rows[0];
 };
 
-const createUser = async (
-  username,
-  email,
-  password,
-  profileImagePath = null
-) => {
+const createUser = async (username, email, password, profileImagePath = null) => {
   const result = await pool.query(
     "INSERT INTO users (username, email, password, profile_image) VALUES ($1, $2, $3, $4) RETURNING user_id, username, email, profile_image",
     [username, email, password, profileImagePath]
@@ -167,12 +161,7 @@ const getSentFriendRequests = async (sender_id) => {
 };
 
 // -------------------- Messaging --------------------
-const sendMessage = async (
-  sender_id,
-  receiver_id,
-  content,
-  is_media = false
-) => {
+const sendMessage = async (sender_id, receiver_id, content, is_media = false) => {
   const result = await pool.query(
     "INSERT INTO message (sender_id, receiver_id, content, is_media) VALUES ($1, $2, $3, $4) RETURNING message_id, message_time",
     [sender_id, receiver_id, content, is_media]
@@ -194,41 +183,36 @@ const getConversation = async (user1_id, user2_id) => {
 
 // -------------------- Search Users --------------------
 const searchUsers = async (searchText, currentUserId = null) => {
-  try {
-    if (!searchText || searchText.trim() === "") return [];
+  if (!searchText || searchText.trim() === "") return [];
 
-    let values = ["%" + searchText.toLowerCase() + "%"];
+  const values = ["%" + searchText.toLowerCase() + "%"];
+  let query = `SELECT user_id, username, profile_image FROM users WHERE LOWER(username) ILIKE $1`;
 
-    let query = `
-      SELECT user_id, username, profile_image
-      FROM users
-      WHERE LOWER(username) ILIKE $1
-    `;
-
-    if (currentUserId) {
-      query += " AND user_id != $2";
-      values.push(currentUserId);
-    }
-
-    query += " ORDER BY username ASC LIMIT 20";
-
-    const result = await pool.query(query, values);
-
-    return result.rows;
-  } catch (err) {
-    console.error("searchUsers Model Error:", err);
-    return [];
+  if (currentUserId) {
+    query += " AND user_id != $2";
+    values.push(currentUserId);
   }
+
+  query += " ORDER BY username ASC LIMIT 20";
+
+  const result = await pool.query(query, values);
+  return result.rows;
 };
 
 // -------------------- Blocked Users --------------------
 const BlockedUser = {
   async block(blocker_id, blocked_id) {
-    const result = await pool.query(
-      "INSERT INTO blockeduser (blocker_id, blocked_id) VALUES ($1, $2) RETURNING *",
-      [blocker_id, blocked_id]
-    );
-    return result.rows[0];
+    if (blocker_id === blocked_id) throw new Error("Cannot block yourself");
+    try {
+      const result = await pool.query(
+        "INSERT INTO blockeduser (blocker_id, blocked_id) VALUES ($1, $2) RETURNING *",
+        [blocker_id, blocked_id]
+      );
+      return result.rows[0];
+    } catch (err) {
+      if (err.code === "23505") throw new Error("User already blocked");
+      throw err;
+    }
   },
 
   async unblock(blocker_id, blocked_id) {
@@ -236,6 +220,7 @@ const BlockedUser = {
       "DELETE FROM blockeduser WHERE blocker_id = $1 AND blocked_id = $2 RETURNING *",
       [blocker_id, blocked_id]
     );
+    if (!result.rows[0]) throw new Error("Blocked user not found");
     return result.rows[0];
   },
 
@@ -251,7 +236,7 @@ const BlockedUser = {
   },
 };
 
-// Update user info
+// -------------------- Update User --------------------
 const updateUser = async (user_id, newUsername, newProfileImagePath) => {
   const result = await pool.query(
     `UPDATE users
@@ -264,10 +249,176 @@ const updateUser = async (user_id, newUsername, newProfileImagePath) => {
   return result.rows[0];
 };
 
+// -------------------- FEED / POSTS --------------------
+const createPost = async (user_id, caption, files = []) => {
+  const postResult = await pool.query(
+    "INSERT INTO posts (user_id, caption) VALUES ($1, $2) RETURNING *",
+    [user_id, caption || ""]
+  );
+  const post = postResult.rows[0];
+
+  for (let file of files) {
+    await pool.query(
+      "INSERT INTO post_images (post_id, image_url) VALUES ($1, $2)",
+      [post.post_id, file.path]
+    );
+  }
+
+  return post;
+};
+
+const getFriendIds = async (user_id) => {
+  const friendsResult = await pool.query(
+    `SELECT CASE WHEN user1_id = $1 THEN user2_id ELSE user1_id END AS friend_id
+     FROM friendship
+     WHERE (user1_id = $1 OR user2_id = $1) AND status = 'accepted'`,
+    [user_id]
+  );
+  return friendsResult.rows.map(r => r.friend_id);
+};
+
+const getPostsByUserIds = async (userIds) => {
+  const postsResult = await pool.query(
+    `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+     FROM posts p
+     JOIN users u ON p.user_id = u.user_id
+     WHERE p.user_id = ANY($1::int[])
+     ORDER BY p.created_at DESC`,
+    [userIds]
+  );
+
+  const posts = postsResult.rows;
+  for (let post of posts) {
+    const imagesResult = await pool.query(
+      "SELECT image_url FROM post_images WHERE post_id = $1",
+      [post.post_id]
+    );
+    post.images = imagesResult.rows.map(r => r.image_url);
+
+    const reactionsResult = await pool.query(
+      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      [post.post_id]
+    );
+    post.reactions = reactionsResult.rows;
+  }
+
+  return posts;
+};
+
+const reactToPost = async (user_id, post_id, reaction_type) => {
+  // Check if a reaction already exists
+  const existing = await pool.query(
+    "SELECT * FROM post_reactions WHERE post_id = $1 AND user_id = $2",
+    [post_id, user_id]
+  );
+
+  if (existing.rows.length > 0) {
+    const currentReaction = existing.rows[0].reaction_type;
+
+    if (currentReaction === reaction_type) {
+      // Same reaction clicked again → remove it (unreact)
+      await pool.query(
+        "DELETE FROM post_reactions WHERE post_id = $1 AND user_id = $2",
+        [post_id, user_id]
+      );
+      return { message: "Reaction removed" };
+    } else {
+      // Different reaction → update it
+      await pool.query(
+        "UPDATE post_reactions SET reaction_type = $1, created_at = NOW() WHERE post_id = $2 AND user_id = $3",
+        [reaction_type, post_id, user_id]
+      );
+      return { message: "Reaction updated" };
+    }
+  } else {
+    // No existing reaction → insert new
+    await pool.query(
+      "INSERT INTO post_reactions (post_id, user_id, reaction_type) VALUES ($1, $2, $3)",
+      [post_id, user_id, reaction_type]
+    );
+    return { message: "Reaction added" };
+  }
+};
+
+const getPostById = async (post_id) => {
+  const postResult = await pool.query(
+    `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+     FROM posts p
+     JOIN users u ON p.user_id = u.user_id
+     WHERE p.post_id = $1`,
+    [post_id]
+  );
+  if (postResult.rows.length === 0) return null;
+
+  const post = postResult.rows[0];
+
+  const imagesResult = await pool.query(
+    "SELECT image_url FROM post_images WHERE post_id = $1",
+    [post.post_id]
+  );
+  post.images = imagesResult.rows.map(r => r.image_url);
+
+  const reactionsResult = await pool.query(
+    "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+    [post.post_id]
+  );
+  post.reactions = reactionsResult.rows;
+
+  return post;
+};
+
+const getPostsByUser = async (user_id) => {
+  const postsResult = await pool.query(
+    `SELECT p.post_id, p.caption, p.created_at, u.username, u.profile_image
+     FROM posts p
+     JOIN users u ON p.user_id = u.user_id
+     WHERE p.user_id = $1
+     ORDER BY p.created_at DESC`,
+    [user_id]
+  );
+
+  const posts = postsResult.rows;
+  for (let post of posts) {
+    const imagesResult = await pool.query(
+      "SELECT image_url FROM post_images WHERE post_id = $1",
+      [post.post_id]
+    );
+    post.images = imagesResult.rows.map(r => r.image_url);
+
+    const reactionsResult = await pool.query(
+      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      [post.post_id]
+    );
+    post.reactions = reactionsResult.rows;
+  }
+
+  return posts;
+};
+const addComment = async (user_id, post_id, comment_text) => {
+  const result = await pool.query(
+    "INSERT INTO post_comments (user_id, post_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
+    [user_id, post_id, comment_text]
+  );
+  return result.rows[0];
+};
+
+const getCommentsByPostId = async (post_id) => {
+  const result = await pool.query(
+    `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_image
+     FROM post_comments c
+     JOIN users u ON c.user_id = u.user_id
+     WHERE c.post_id = $1
+     ORDER BY c.created_at ASC`,
+    [post_id]
+  );
+  return result.rows;
+};
+
+// -------------------- Export --------------------
 module.exports = {
   isValidEmail,
-  pool,
   isValidPassword,
+  pool,
   findUserByEmail,
   findUserByUsername,
   findUserIdByUsername,
@@ -288,4 +439,12 @@ module.exports = {
   searchUsers,
   BlockedUser,
   updateUser,
+  createPost,
+  getFriendIds,
+  getPostsByUserIds,
+  reactToPost,
+  getPostById,
+  getPostsByUser,
+  addComment,
+  getCommentsByPostId,
 };
