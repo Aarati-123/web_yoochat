@@ -5,7 +5,6 @@ function IconMenu({ onSelect }) {
   const [activeIcon, setActiveIcon] = useState("profile");
   const [collapsed, setCollapsed] = useState(false);
 
-  // Collapse navbar on small screens
   useEffect(() => {
     const handleResize = () => setCollapsed(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
@@ -15,6 +14,7 @@ function IconMenu({ onSelect }) {
 
   const icons = [
     { id: "home", icon: "🏠" },
+    { id: "feed", icon: "📰" },  // <-- new Friends Feed icon
     { id: "notifications", icon: "🔔" },
     { id: "chat", icon: "💬" },
     { id: "profile", icon: "👤" },
@@ -39,9 +39,18 @@ function IconMenu({ onSelect }) {
         ))}
       </div>
 
-      <div className="bottomIcon">☰</div>
+      <div
+        className={`bottomIcon ${activeIcon === "settings" ? "activeSetting" : ""}`}
+        onClick={() => {
+          setActiveIcon("settings");
+          onSelect?.("settings");
+        }}
+      >
+        ⚙️
+      </div>
     </div>
   );
 }
 
 export default IconMenu;
+
