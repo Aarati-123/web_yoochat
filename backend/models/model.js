@@ -2,11 +2,10 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 const pool = new Pool({
-  user: process.env.db_user,
-  password: process.env.db_password,
-  host: process.env.db_host,
-  port: process.env.db_port,
-  database: process.env.db_name,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // required for Neon
+  },
 });
 
 pool.connect((err, client, release) => {
@@ -17,6 +16,7 @@ pool.connect((err, client, release) => {
     release();
   }
 });
+
 
 const createNotificationIfNotExists = async (user_id, actor_id, type, message, post_id = null) => {
   try {
