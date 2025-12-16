@@ -66,6 +66,27 @@
   padding: 20px;
 }
 
+.settingsFull {
+  display: flex; /* horizontal layout */
+  height: 100%;
+  gap: 1rem; /* optional spacing */
+}
+
+/* Left panel: settings list */
+.settingsPanel {
+  width: 200px; /* fixed width */
+  border-right: 1px solid #ddd;
+  padding: 12px;
+}
+
+/* Right panel: settings content */
+.settingsContent {
+  flex: 1; /* take remaining space */
+  padding: 16px;
+  overflow-y: auto; /* scroll if content is long */
+  background-color: #f9f9f9;
+}
+  
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .homeContainer {

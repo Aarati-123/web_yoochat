@@ -6,7 +6,7 @@ import SignUp from "./screens/SignUp";
 import Home from "./screens/Home";
 import ChatScreen from "./screens/ChatScreen";
 import Logout from "./screens/Logout";
-import mainScreen from "./screens/mainScreen";
+//import mainScreen from "./screens/mainScreen";
 
 export default function App() {
   return (

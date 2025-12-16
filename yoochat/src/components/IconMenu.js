@@ -13,8 +13,8 @@ function IconMenu({ onSelect }) {
   }, []);
 
   const icons = [
-    { id: "home", icon: "🏠" },
-    { id: "feed", icon: "📰" },  // <-- new Friends Feed icon
+    { id: "feed", icon: "🏠" },  
+    { id: "home", icon: "📰" },
     { id: "notifications", icon: "🔔" },
     { id: "chat", icon: "💬" },
     { id: "profile", icon: "👤" },

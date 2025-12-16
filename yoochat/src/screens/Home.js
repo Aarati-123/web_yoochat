@@ -3,15 +3,13 @@ import React, { useState, useEffect } from "react";
 import IconMenu from "../components/IconMenu";
 import TabNav from "../components/TabNav";
 import UserList from "../components/UserList";
-import ChatWindow from "../components/ChatWindow";
 import SettingsPanel from "../components/SettingsPanel";
 import EditProfile from "../components/EditProfile";
 import ContributeFeed from "../components/ContributeFeed";
-import FriendsFeed from "../components/FriendsFeed"; 
+import FriendsFeed from "../components/FriendsFeed";
 import NotificationsPage from "../components/NotificationsPage";
-import MyPostsFeed from "../components/MyPostsFeed"; 
-
-
+import MyPostsFeed from "../components/MyPostsFeed";
+import ChatScreen from "./ChatScreen";
 
 import "./Home.css";
 
@@ -23,7 +21,7 @@ import {
 } from "../api/api";
 
 function Home() {
-  const [activeSidebar, setActiveSidebar] = useState("feed"); // Which icon is clicked
+  const [activeSidebar, setActiveSidebar] = useState("feed");
   const [activeTab, setActiveTab] = useState("Friends");
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
@@ -33,9 +31,9 @@ function Home() {
   const [selectedSetting, setSelectedSetting] = useState(null);
 
   const token = localStorage.getItem("token");
-  const username = localStorage.getItem("username"); // logged-in username
+  const username = localStorage.getItem("username");
 
-  // Load friends + pending when tab changes (only when profile is active)
+  /* ---------------- PROFILE DATA ---------------- */
   useEffect(() => {
     if (activeSidebar !== "profile") return;
 
@@ -52,18 +50,19 @@ function Home() {
           setSentRequests(sent.sent_requests || []);
         }
       } catch (err) {
-        console.error("Error loading data:", err);
+        console.error(err);
       }
     }
+
     loadData();
   }, [activeTab, activeSidebar, username]);
 
-  // Live search for Add Friend tab
+  /* ---------------- SEARCH USERS ---------------- */
   useEffect(() => {
     if (activeSidebar !== "profile" || activeTab !== "Add Friend") return;
 
-    async function doSearch() {
-      if (search.trim().length < 1) {
+    const delay = setTimeout(async () => {
+      if (!search.trim()) {
         setUsers([]);
         return;
       }
@@ -71,15 +70,14 @@ function Home() {
         const res = await searchUsers(search, token);
         setUsers(res.users || []);
       } catch (err) {
-        console.error("Search error:", err);
+        console.error(err);
       }
-    }
+    }, 300);
 
-    const delay = setTimeout(doSearch, 300);
     return () => clearTimeout(delay);
-  }, [search, activeTab, activeSidebar, token]);
+  }, [search, activeSidebar, activeTab, token]);
 
-  // Handle friend actions
+  /* ---------------- FRIEND ACTIONS ---------------- */
   const handleActionComplete = async (user, actionType) => {
     if (actionType === "sent") {
       setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
@@ -92,14 +90,8 @@ function Home() {
       setReceivedRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
       );
-      try {
-        if (username) {
-          const res = await getFriends(username);
-          setFriends(res.friends || []);
-        }
-      } catch (err) {
-        console.error("Error refreshing friends:", err);
-      }
+      const res = await getFriends(username);
+      setFriends(res.friends || []);
     } else if (actionType === "declined") {
       setReceivedRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
@@ -107,27 +99,20 @@ function Home() {
     }
   };
 
-  // Utility: safe sorting with search match first
+  /* ---------------- SORT / FILTER ---------------- */
   const sortBySearchMatch = (arr) => {
     if (!search) return arr;
-    const lowerSearch = search.toLowerCase();
-    return [...arr].sort((a, b) => {
-      const aName = (a.username || "").toLowerCase();
-      const bName = (b.username || "").toLowerCase();
-      const aIndex = aName.indexOf(lowerSearch);
-      const bIndex = bName.indexOf(lowerSearch);
-      const aScore = aIndex === -1 ? Infinity : aIndex;
-      const bScore = bIndex === -1 ? Infinity : bIndex;
-      return aScore - bScore;
-    });
+    return [...arr].sort((a, b) =>
+      a.username.toLowerCase().indexOf(search.toLowerCase()) -
+      b.username.toLowerCase().indexOf(search.toLowerCase())
+    );
   };
 
-  // Filtered and sorted lists
   const filteredFriends =
     activeSidebar === "profile" && activeTab === "Friends"
       ? sortBySearchMatch(
-          friends.filter((u) =>
-            (u.username || "").toLowerCase().includes(search.toLowerCase())
+          friends.filter((f) =>
+            f.username.toLowerCase().includes(search.toLowerCase())
           )
         )
       : [];
@@ -144,127 +129,109 @@ function Home() {
 
   const filteredPending =
     activeSidebar === "profile" && activeTab === "Pending"
-      ? sortBySearchMatch(
-          [...receivedRequests, ...sentRequests].filter((u) =>
-            (u.username || "").toLowerCase().includes(search.toLowerCase())
-          )
-        )
+      ? sortBySearchMatch([...receivedRequests, ...sentRequests])
       : [];
 
+  /* ================= RENDER ================= */
   return (
     <div className="homeContainer">
       <div className="sidebar">
         <IconMenu onSelect={setActiveSidebar} />
       </div>
 
-      {/* If feed is selected, show only feed panel */}
-      {activeSidebar === "feed" ? (
+      {/* FEED */}
+      {activeSidebar === "feed" && (
         <div className="feedPanel">
           <FriendsFeed token={token} />
         </div>
-        ) : activeSidebar === "home" ? (
-  <div className="middlePanel">
-    <MyPostsFeed />
-  </div>
-      ) : (
-        <>
-          <div className="middlePanel">
-            {activeSidebar === "profile" ? (
-              <>
-                <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      )}
 
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="searchInput"
-                />
+      {/* HOME */}
+      {activeSidebar === "home" && (
+        <div className="middlePanel">
+          <MyPostsFeed />
+        </div>
+      )}
 
-                {activeTab === "Friends" && (
-                  <UserList
-                    users={filteredFriends}
-                    type="friends"
-                    token={token}
-                    onActionComplete={handleActionComplete}
+      {/* CHAT → SEPARATE SCREEN */}
+      {activeSidebar === "chat" && <ChatScreen />}
+
+      {/* ALL OTHER SCREENS */}
+      {activeSidebar !== "feed" &&
+        activeSidebar !== "home" &&
+        activeSidebar !== "chat" && (
+          <>
+            <div className="middlePanel">
+              {activeSidebar === "profile" && (
+                <>
+                  <TabNav
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
                   />
-                )}
 
-                {activeTab === "Add Friend" && (
-                  <UserList
-                    users={filteredUsers}
-                    type="add"
-                    token={token}
-                    friends={friends}
-                    sentRequests={sentRequests}
-                    receivedRequests={receivedRequests}
-                    onActionComplete={handleActionComplete}
+                  <input
+                    className="searchInput"
+                    placeholder="Search users..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
-                )}
 
-                {activeTab === "Pending" && (
-                  <>
-                    <div className="pendingCounts">
-                      <span>Sent: {sentRequests.length}</span> |{" "}
-                      <span>Received: {receivedRequests.length}</span>
-                    </div>
+                  {activeTab === "Friends" && (
+                    <UserList
+                      users={filteredFriends}
+                      type="friends"
+                      token={token}
+                      onActionComplete={handleActionComplete}
+                    />
+                  )}
+
+                  {activeTab === "Add Friend" && (
+                    <UserList
+                      users={filteredUsers}
+                      type="add"
+                      token={token}
+                      onActionComplete={handleActionComplete}
+                    />
+                  )}
+
+                  {activeTab === "Pending" && (
                     <UserList
                       users={filteredPending}
                       type="pending"
                       token={token}
                       onActionComplete={handleActionComplete}
                     />
-                  </>
-                )}
-              </>
-              ) : activeSidebar === "notifications" ? (
-              <NotificationsPage />
-            ) : activeSidebar === "settings" ? (
-              <SettingsPanel onSelectSetting={setSelectedSetting} />
-            ) : (
-              <div
-                style={{
-                  textAlign: "center",
-                  marginTop: "50px",
-                  color: "#666",
-                }}
-              >
-                <h2>{activeSidebar.toUpperCase()}</h2>
-                <p>Content will appear here later.</p>
-              </div>
-            )}
-          </div>
+                  )}
+                </>
+              )}
 
-          <div className="chatPanel">
-            {activeSidebar === "settings" ? (
-              <div className="settingsContent">
+              {activeSidebar === "notifications" && <NotificationsPage />}
+              {activeSidebar === "settings" && (
+                <SettingsPanel onSelectSetting={setSelectedSetting} />
+              )}
+            </div>
+
+            {/* SETTINGS RIGHT PANEL */}
+            {activeSidebar === "settings" && (
+              <div className="chatPanel">
                 {selectedSetting === "EditProfile" && (
                   <EditProfile token={token} />
                 )}
                 {selectedSetting === "ContributeFeed" && (
                   <ContributeFeed token={token} />
                 )}
-                {selectedSetting === "BlockedUsers" && (
-                  <p>Blocked users list here.</p>
-                )}
                 {selectedSetting === "ArchivedChats" && (
                   <p>Archived chats here.</p>
                 )}
-                {selectedSetting === "Logout" && <p>You have been logged out.</p>}
                 {!selectedSetting && (
                   <p style={{ color: "#888" }}>
-                    Select an option from settings 😎.
+                    Select an option from settings 😎
                   </p>
                 )}
               </div>
-            ) : (
-              <ChatWindow
-                user={{ name: "Ralph Edwards", avatar: "/avatar2.png" }}
-              />
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
     </div>
   );
 }

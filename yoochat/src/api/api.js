@@ -1,4 +1,5 @@
 import axios from "axios";
+
 const API_URL = "http://localhost:3000"; // Backend URL
 
 // Helper for requests with JWT
@@ -15,7 +16,7 @@ export const searchUsers = async (query, token) => {
     });
     return response.data;
   } catch (err) {
-    console.error("Search API Error:", err);
+    console.error("searchUsers API Error:", err);
     return { users: [] };
   }
 };
@@ -122,10 +123,9 @@ export const unfriend = async (user2_id) => {
 };
 
 // ================== Post APIs ==================
-
 export const getMyPosts = async () => {
   try {
-    const res = await fetch(`${API_URL}/feed/myPosts`, { // <-- updated route
+    const res = await fetch(`${API_URL}/feed/myPosts`, {
       headers: getAuthHeaders(),
     });
     return res.json();
@@ -140,9 +140,7 @@ export const createPost = async (formData) => {
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_URL}/feed/createPost`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`, // DO NOT set Content-Type manually
-      },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
     return res.json();
@@ -152,42 +150,35 @@ export const createPost = async (formData) => {
   }
 };
 
-
-
-// ================== Profile API ==================
-export const getMyProfile = async () => {
-  try {
-    const res = await fetch(`${API_URL}/users/me`, {
-      headers: getAuthHeaders(),
-    });
-    return res.json(); // { username, profile_image, ... }
-  } catch (err) {
-    console.error("getMyProfile API Error:", err);
-    return { username: "Unknown", profile_image: "/avatar2.png" };
-  }
-};
-
-// ================== Friends' Posts API ==================
 export const getFriendsPosts = async () => {
   try {
     const res = await fetch(`${API_URL}/feed/posts`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch posts");
-    const data = await res.json();
-    return data; // { posts: [...] }
+    if (!res.ok) throw new Error("Failed to fetch friends' posts");
+    return res.json();
   } catch (err) {
     console.error("getFriendsPosts API Error:", err);
     return { posts: [] };
   }
 };
 
+// ================== Profile API ==================
+export const getMyProfile = async () => {
+  try {
+    const res = await fetch(`${API_URL}/users/me`, { headers: getAuthHeaders() });
+    return res.json();
+  } catch (err) {
+    console.error("getMyProfile API Error:", err);
+    return { username: "Unknown", profile_image: "/avatar2.png" };
+  }
+};
+
+// ================== Notifications ==================
 export const getNotifications = async () => {
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch(`http://localhost:3000/notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(`${API_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new Error("Failed to fetch notifications");
     const data = await res.json();
     return data.notifications || [];
@@ -197,4 +188,45 @@ export const getNotifications = async () => {
   }
 };
 
+
+export const sendMessageAPI = async (receiver_id, content) => {
+  try {
+    const res = await fetch(`http://localhost:3000/message/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ receiver_id, content }),
+    });
+
+    if (!res.ok) throw new Error("Send failed");
+
+    const data = await res.json();
+    return data.message_data; // ✅ CORRECT
+  } catch (err) {
+    console.error("sendMessageAPI Error:", err);
+    return null;
+  }
+};
+
+
+export const getMessages = async (friend_id) => {
+  try {
+    const res = await fetch(
+      `http://localhost:3000/message/conversation/${friend_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    const data = await res.json();
+    return data.conversation || [];
+  } catch (err) {
+    console.error("getMessages API Error:", err);
+    return [];
+  }
+};
 

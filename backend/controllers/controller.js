@@ -8,7 +8,9 @@ const reactToPost = require("../models/model");
 
 
 const hillKey = process.env.HILL_KEY;
-if (!hillKey) throw new Error("HILL_KEY is not defined");
+if (!hillKey || hillKey.length !== 4) {
+  throw new Error("HILL_KEY must be defined and 4 characters long");
+}
 
 // -------------------- Registration --------------------
 const register = async (req, res) => {
@@ -258,22 +260,34 @@ const getSentRequests = async (req, res) => {
 // -------------------- Messaging --------------------
 const sendMessage = async (req, res) => {
   try {
+    const { receiver_id, content } = req.body;
+
+    if (!receiver_id || !content) {
+      return res.status(400).json({ message: "Missing receiver_id or content" });
+    }
+
     const sender_id = req.user.user_id;
-    const { receiver_id, content, is_media = false } = req.body;
-    if (!receiver_id || !content) return res.status(400).json({ message: "Missing receiver_id or content" });
 
-    const friendship = await userModel.checkFriendshipExists(sender_id, receiver_id);
-    if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
+    const encryptedContent = encryptHill(content, hillKey);
 
-    const encryptedMessage = encryptHill(content, hillKey);
-    await userModel.sendMessage(sender_id, receiver_id, encryptedMessage, is_media);
+    const result = await pool.query(
+      "INSERT INTO message (sender_id, receiver_id, content) VALUES ($1, $2, $3) RETURNING *",
+      [sender_id, receiver_id, encryptedContent]
+    );
 
-    return res.status(200).json({ message: "Message sent successfully" });
+    const savedMessage = result.rows[0];
+
+    // Decrypt before sending back
+    savedMessage.content = decryptHill(savedMessage.content, hillKey);
+
+    res.status(200).json(savedMessage);
   } catch (err) {
     console.error("SendMessage Error:", err);
-    return res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: err.message });
   }
 };
+
+
 
 const getConversation = async (req, res) => {
   try {
