@@ -5,7 +5,7 @@ import {
   declineFriendRequest,
   cancelFriendRequest,
 } from "../api/api";
-import "./FriendActions.css"; // Ensure this file contains .purple-btn & .purple-btn-small
+import "./FriendActions.css";
 
 const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) => {
   const [loading, setLoading] = useState(false);

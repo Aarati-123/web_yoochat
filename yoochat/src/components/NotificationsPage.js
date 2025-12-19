@@ -1,10 +1,11 @@
+// src/components/NotificationsPage.js
 import React, { useEffect, useState } from "react";
 import { getNotifications } from "../api/api";
 import "./NotificationsPage.css";
 
 const API_URL = "http://localhost:3000";
 
-const NotificationsPage = () => {
+const NotificationsPage = ({ type }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +15,6 @@ const NotificationsPage = () => {
       try {
         const data = await getNotifications();
 
-        // Format profile images
         const formatted = data.map((n) => ({
           ...n,
           sender_profile_image: n.sender_profile_image
@@ -34,45 +34,75 @@ const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
-  if (loading)
-    return <p className="loadingText">Loading notifications...</p>;
-  if (!notifications.length)
-    return <p className="noNotifications">No notifications yet.</p>;
+  if (loading) {
+    return <p style={{ textAlign: "center" }}>Loading notifications...</p>;
+  }
+
+  const filteredNotifications =
+    type === "friends"
+      ? notifications.filter(
+          (n) =>
+            n.type === "friend_request" ||
+            n.type === "friend_accept" ||
+            n.type === "friend_decline"
+        )
+      : notifications.filter((n) => n.type === "like");
+
+  if (!filteredNotifications.length) {
+    return (
+      <p style={{ textAlign: "center", color: "#777" }}>
+        No notifications yet.
+      </p>
+    );
+  }
 
   return (
-    <div className="notificationsWrapper">
-      <h2 className="notificationsHeader">Notifications</h2>
-      <ul className="notificationsList">
-        {notifications.map((n) => (
-          <li key={n.notification_id} className={`notificationCard ${n.is_read ? "read" : "unread"}`}>
-            <img
-              src={n.sender_profile_image}
-              alt={n.sender_username || "User"}
-              className="notificationAvatar"
-            />
-            <div className="notificationContent">
-              <p className="notificationMessage">
-                {n.sender_username
-                  ? `${n.sender_username} ${
-                      n.type === "friend_accept"
-                        ? "accepted your friend request"
-                        : n.type === "friend_request"
-                        ? "sent you a friend request"
-                        : n.type === "friend_decline"
-                        ? "declined your friend request"
-                        : n.type === "like"
-                        ? "reacted 💜 to your post"
-                        : ""
-                    }`
-                  : n.message}
-              </p>
-              <span className="notificationTime">
-                {new Date(n.created_at).toLocaleString()}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="notificationsSinglePanel">
+      <h2 className="panelTitle">
+        {type === "friends" ? "Friend Actions" : "Post Notifications"}
+      </h2>
+
+      {filteredNotifications.map((n) => (
+        <div key={n.notification_id} className="notificationCard">
+          <img
+            src={n.sender_profile_image}
+            alt={n.sender_username || "User"}
+            className="notificationAvatar"
+          />
+
+          <div className="notificationContent">
+            <p className="notificationMessage">
+              {type === "friends" ? (
+                n.type === "friend_request" ? (
+                  `${n.sender_username} sent you a friend request`
+                ) : n.type === "friend_accept" ? (
+                  `${n.sender_username} accepted your friend request`
+                ) : (
+                  `${n.sender_username} declined your friend request`
+                )
+              ) : (
+                `${n.sender_username} reacted 💜 to your post`
+              )}
+            </p>
+
+            {type === "posts" && n.post_thumbnail && (
+              <img
+                src={
+                  n.post_thumbnail.startsWith("http")
+                    ? n.post_thumbnail
+                    : `${API_URL}/${n.post_thumbnail.replace(/\\/g, "/")}`
+                }
+                alt="Post"
+                className="notificationPostThumbnail"
+              />
+            )}
+
+            <span className="notificationTime">
+              {new Date(n.created_at).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

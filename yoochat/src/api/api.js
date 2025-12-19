@@ -230,3 +230,51 @@ export const getMessages = async (friend_id) => {
   }
 };
 
+// ================== Saved Posts ==================
+export const savePost = async (post_id) => {
+  try {
+    const res = await fetch(`${API_URL}/feed/savePost`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify({ post_id }),
+    });
+    return res.json();
+  } catch (err) {
+    console.error("savePost API Error:", err);
+    return { success: false, message: "Failed to save post" };
+  }
+};
+
+export const unsavePost = async (post_id) => {
+  try {
+    const res = await fetch(`${API_URL}/feed/unsavePost`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders() 
+      },
+      body: JSON.stringify({ post_id }),
+    });
+    return res.json();
+  } catch (err) {
+    console.error("unsavePost API Error:", err);
+    return { success: false, message: "Failed to unsave post" };
+  }
+};
+
+export const getSavedPosts = async () => {
+  try {
+    const res = await fetch(`${API_URL}/feed/saved`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch saved posts");
+    const data = await res.json();
+    return data.savedPosts || [];
+  } catch (err) {
+    console.error("getSavedPosts API Error:", err);
+    return [];
+  }
+};
