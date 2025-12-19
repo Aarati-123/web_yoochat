@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getFriendsPosts } from "../api/api";
+import { getFriendsPosts, getSavedPosts, savePost, unsavePost } from "../api/api";
 import "./FriendsFeed.css";
 
 const API_URL = "http://localhost:3000";
@@ -7,16 +7,19 @@ const API_URL = "http://localhost:3000";
 function FriendsFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [likedPosts, setLikedPosts] = useState({}); // used → safe, no warning
+  const [likedPosts, setLikedPosts] = useState({});
+  const [savedPosts, setSavedPosts] = useState({}); // track saved status
 
-  // Fetch friends' posts
+  // Fetch friends' posts & saved posts
   useEffect(() => {
     async function fetchPosts() {
       setLoading(true);
       try {
+        // 1️⃣ Fetch friends' posts
         const res = await getFriendsPosts();
+        let formattedPosts = [];
         if (res.posts) {
-          const formattedPosts = res.posts.map((post) => ({
+          formattedPosts = res.posts.map((post) => ({
             ...post,
             images: (post.images || []).map((img) =>
               img.startsWith("http") ? img : `${API_URL}/${img.replace(/\\/g, "/")}`
@@ -28,25 +31,35 @@ function FriendsFeed() {
               : `${API_URL}/avatar2.png`,
             reactionsCount: post.reactions ? post.reactions.length : 0,
           }));
-
-          setPosts(formattedPosts);
-
-          // Initialize liked state (from backend)
-          const initialLikes = {};
-          formattedPosts.forEach((p) => {
-            initialLikes[p.post_id] = p.userLiked || false;
-          });
-          setLikedPosts(initialLikes);
         }
+
+        setPosts(formattedPosts);
+
+        // 2️⃣ Initialize liked state
+        const initialLikes = {};
+        formattedPosts.forEach((p) => {
+          initialLikes[p.post_id] = p.userLiked || false;
+        });
+        setLikedPosts(initialLikes);
+
+        // 3️⃣ Fetch saved posts separately
+        const savedRes = await getSavedPosts();
+        const savedPostIds = savedRes.map(p => p.original_post_id);
+        const initialSaved = {};
+        formattedPosts.forEach((p) => {
+          initialSaved[p.post_id] = savedPostIds.includes(p.post_id);
+        });
+        setSavedPosts(initialSaved);
+
       } catch (err) {
-        console.error("Error fetching friends posts:", err);
+        console.error("Error fetching posts or saved posts:", err);
       }
       setLoading(false);
     }
     fetchPosts();
   }, []);
 
-  // Handle Like button click
+  // Toggle like
   const toggleLike = async (postId) => {
     try {
       const token = localStorage.getItem("token");
@@ -58,28 +71,38 @@ function FriendsFeed() {
         },
         body: JSON.stringify({ post_id: postId }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Something went wrong!");
-
-      // Update liked state locally
-      setLikedPosts((prev) => ({
-        ...prev,
-        [postId]: data.liked,
-      }));
-
-      // Update reactions count in posts list
+      setLikedPosts((prev) => ({ ...prev, [postId]: data.liked }));
       setPosts((prevPosts) =>
-        prevPosts.map((p) => {
-          if (p.post_id === postId) {
-            return { ...p, reactionsCount: data.totalLikes };
-          }
-          return p;
-        })
+        prevPosts.map((p) =>
+          p.post_id === postId ? { ...p, reactionsCount: data.totalLikes } : p
+        )
       );
     } catch (err) {
       console.error("Error liking post:", err);
       alert("Something went wrong!");
+    }
+  };
+
+  // Save post
+  const handleSavePost = async (postId) => {
+    try {
+      if (savedPosts[postId]) {
+        // Unsave
+        const res = await unsavePost(postId);
+        if (res.message === "Post unsaved successfully") {
+          setSavedPosts((prev) => ({ ...prev, [postId]: false }));
+        }
+      } else {
+        // Save
+        const res = await savePost(postId);
+        if (res.message === "Post saved successfully") {
+          setSavedPosts((prev) => ({ ...prev, [postId]: true }));
+        }
+      }
+    } catch (err) {
+      console.error("Save/Unsave post error:", err);
     }
   };
 
@@ -90,8 +113,7 @@ function FriendsFeed() {
     <div className="friendsFeed">
       {posts.map((post) => (
         <div key={post.post_id} className="postCard">
-
-          {/* ==== HEADER ==== */}
+          {/* Header */}
           <div className="postHeader">
             <div className="postHeaderLeft">
               <img src={post.profile_image} alt={post.username} className="postAvatar" />
@@ -100,10 +122,10 @@ function FriendsFeed() {
             <span className="postTime">{new Date(post.created_at).toLocaleString()}</span>
           </div>
 
-          {/* ==== CAPTION ==== */}
+          {/* Caption */}
           {post.caption && <p className="postCaption">{post.caption}</p>}
 
-          {/* ==== IMAGES ==== */}
+          {/* Images */}
           {post.images?.length > 0 && (
             <div className="postImages">
               {post.images.length === 1 ? (
@@ -123,18 +145,23 @@ function FriendsFeed() {
             </div>
           )}
 
-          {/* ==== LIKE BUTTON ==== */}
+          {/* Actions */}
           <div className="postActions">
             <button
-              className={likedPosts[post.post_id] ? "reacted" : ""}
+              className={likedPosts[post.post_id] ? "reacted" : "like-btn"}
               onClick={() => toggleLike(post.post_id)}
             >
               💜
             </button>
-
             <span className="like-count">{post.reactionsCount}</span>
-          </div>
 
+            <button
+              className={savedPosts[post.post_id] ? "saved-btn" : "save-btn"}
+              onClick={() => handleSavePost(post.post_id)}
+            >
+              {savedPosts[post.post_id] ? "Saved" : "Save"}
+            </button>
+          </div>
         </div>
       ))}
     </div>

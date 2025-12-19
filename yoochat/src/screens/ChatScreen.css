@@ -8,7 +8,7 @@
 
 /* LEFT PANEL: Friends List */
 .chatListPanel {
-  width: 280px;
+  width: 350px; /* extended width */
   border-right: 1px solid #ddd;
   display: flex;
   flex-direction: column;
@@ -64,6 +64,26 @@
   display: flex;
   flex-direction: column;
   background-color: #fff;
+  position: relative;
+}
+
+/* Placeholder (no friend selected) */
+.chatConversationPanel .chatPlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #4b0082;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Chat window active: fills right panel */
+.chatConversationPanel.chatWindowActive {
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 /* Top bar with friend info */
@@ -153,5 +173,36 @@
 }
 
 .chatInputContainer button:hover {
-  background-color: #40a9ff;
+  background-color: #9f75bf;
+}
+
+/* Placeholder content */
+.chatPlaceholder h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.chatPlaceholder p {
+  font-size: 16px;
+  color: #666;
+}
+
+/* Floating bubbles animation */
+.bubblesContainer {
+  display: flex;
+  gap: 15px;
+}
+
+.bubble {
+  font-size: 2rem;
+  animation: floatBubble 2s infinite ease-in-out;
+}
+
+.bubble:nth-child(2) { animation-delay: 0.3s; }
+.bubble:nth-child(3) { animation-delay: 0.6s; }
+.bubble:nth-child(4) { animation-delay: 0.9s; }
+
+@keyframes floatBubble {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
 }

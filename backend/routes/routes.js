@@ -89,4 +89,10 @@ router.get("/notifications", verifyToken, async (req, res) => {
 });
 
 
+// =================== SAVED POSTS ===================
+router.post("/feed/savePost", verifyToken, controller.savePostController);
+router.post("/feed/unsavePost", verifyToken, controller.unsavePostController);
+router.get("/feed/saved", verifyToken, controller.getSavedPostsController);
+
+
 module.exports = router;

@@ -1,4 +1,3 @@
-// src/screens/Home.js
 import React, { useState, useEffect } from "react";
 import IconMenu from "../components/IconMenu";
 import TabNav from "../components/TabNav";
@@ -9,6 +8,8 @@ import ContributeFeed from "../components/ContributeFeed";
 import FriendsFeed from "../components/FriendsFeed";
 import NotificationsPage from "../components/NotificationsPage";
 import MyPostsFeed from "../components/MyPostsFeed";
+import SavedPostsFeed from "../components/savedPostsFeed";
+
 import ChatScreen from "./ChatScreen";
 
 import "./Home.css";
@@ -24,40 +25,46 @@ function Home() {
   const [activeSidebar, setActiveSidebar] = useState("feed");
   const [activeTab, setActiveTab] = useState("Friends");
   const [search, setSearch] = useState("");
+
   const [users, setUsers] = useState([]);
   const [friends, setFriends] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
+
   const [selectedSetting, setSelectedSetting] = useState(null);
 
   const token = localStorage.getItem("token");
   const username = localStorage.getItem("username");
 
-  /* ---------------- PROFILE DATA ---------------- */
+  /* ================= LOAD PROFILE DATA ================= */
   useEffect(() => {
     if (activeSidebar !== "profile") return;
 
     async function loadData() {
       try {
+        if (!username) return;
+
         if (activeTab === "Friends") {
-          if (!username) return;
           const res = await getFriends(username);
-          setFriends(res.friends || []);
-        } else if (activeTab === "Pending") {
+          setFriends(res?.friends || []);
+        }
+
+        if (activeTab === "Pending") {
           const received = await getPendingRequests();
           const sent = await getSentRequests();
-          setReceivedRequests(received.pending_requests || []);
-          setSentRequests(sent.sent_requests || []);
+
+          setReceivedRequests(received?.pending_requests || []);
+          setSentRequests(sent?.sent_requests || []);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Profile load error:", err);
       }
     }
 
     loadData();
-  }, [activeTab, activeSidebar, username]);
+  }, [activeSidebar, activeTab, username]);
 
-  /* ---------------- SEARCH USERS ---------------- */
+  /* ================= SEARCH USERS ================= */
   useEffect(() => {
     if (activeSidebar !== "profile" || activeTab !== "Add Friend") return;
 
@@ -66,53 +73,70 @@ function Home() {
         setUsers([]);
         return;
       }
+
       try {
         const res = await searchUsers(search, token);
-        setUsers(res.users || []);
+        setUsers(res?.users || []);
       } catch (err) {
-        console.error(err);
+        console.error("Search error:", err);
       }
     }, 300);
 
     return () => clearTimeout(delay);
   }, [search, activeSidebar, activeTab, token]);
 
-  /* ---------------- FRIEND ACTIONS ---------------- */
+  /* ================= FRIEND ACTIONS ================= */
   const handleActionComplete = async (user, actionType) => {
+    if (!user) return;
+
     if (actionType === "sent") {
       setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
       setSentRequests((prev) => [...prev, user]);
-    } else if (actionType === "cancelled") {
+    }
+
+    if (actionType === "cancelled") {
       setSentRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
       );
-    } else if (actionType === "accepted") {
+    }
+
+    if (actionType === "accepted") {
       setReceivedRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
       );
       const res = await getFriends(username);
-      setFriends(res.friends || []);
-    } else if (actionType === "declined") {
+      setFriends(res?.friends || []);
+    }
+
+    if (actionType === "declined") {
       setReceivedRequests((prev) =>
         prev.filter((u) => u.user_id !== user.user_id)
       );
     }
   };
 
-  /* ---------------- SORT / FILTER ---------------- */
+  /* ================= SAFE SORT ================= */
   const sortBySearchMatch = (arr) => {
     if (!search) return arr;
-    return [...arr].sort((a, b) =>
-      a.username.toLowerCase().indexOf(search.toLowerCase()) -
-      b.username.toLowerCase().indexOf(search.toLowerCase())
-    );
+
+    const searchText = search.toLowerCase();
+
+    return [...arr].sort((a, b) => {
+      const aName = (a?.username || "").toLowerCase();
+      const bName = (b?.username || "").toLowerCase();
+
+      return aName.indexOf(searchText) - bName.indexOf(searchText);
+    });
   };
 
+  /* ================= FILTERED DATA ================= */
   const filteredFriends =
     activeSidebar === "profile" && activeTab === "Friends"
       ? sortBySearchMatch(
           friends.filter((f) =>
-            f.username.toLowerCase().includes(search.toLowerCase())
+            (f?.username || "")
+              .toLowerCase()
+              .includes(search.toLowerCase())
           )
         )
       : [];
@@ -148,18 +172,26 @@ function Home() {
 
       {/* HOME */}
       {activeSidebar === "home" && (
-        <div className="middlePanel">
-          <MyPostsFeed />
-        </div>
-      )}
+  <div className="homeMainPanel">
+    <div className="homeLeft">
+      <MyPostsFeed />
+    </div>
 
-      {/* CHAT → SEPARATE SCREEN */}
+    <div className="homeRight">
+      <SavedPostsFeed />
+    </div>
+  </div>
+)}
+
+
+      {/* CHAT */}
       {activeSidebar === "chat" && <ChatScreen />}
 
-      {/* ALL OTHER SCREENS */}
+      {/* OTHER SCREENS */}
       {activeSidebar !== "feed" &&
         activeSidebar !== "home" &&
-        activeSidebar !== "chat" && (
+        activeSidebar !== "chat" &&
+         (
           <>
             <div className="middlePanel">
               {activeSidebar === "profile" && (
@@ -205,7 +237,22 @@ function Home() {
                 </>
               )}
 
-              {activeSidebar === "notifications" && <NotificationsPage />}
+{activeSidebar === "notifications" && (
+  <>
+    {/* MIDDLE PANEL — FRIEND ACTIONS */}
+    <div className="middlePanel">
+      <NotificationsPage type="friends" />
+    </div>
+
+    {/* RIGHT PANEL — POST NOTIFICATIONS */}
+    <div className="chatPanel">
+      <NotificationsPage type="posts" />
+    </div>
+  </>
+)}
+
+
+
               {activeSidebar === "settings" && (
                 <SettingsPanel onSelectSetting={setSelectedSetting} />
               )}

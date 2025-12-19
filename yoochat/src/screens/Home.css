@@ -86,6 +86,41 @@
   overflow-y: auto; /* scroll if content is long */
   background-color: #f9f9f9;
 }
+
+.homeMainPanel {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 50% | 50% */
+  gap: 20px;
+  padding: 20px;
+  background: #f8f4ff;
+}
+
+/* LEFT: MY POSTS */
+.homeLeft {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* RIGHT: SAVED POSTS */
+.homeRight {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.notificationsTwoPanelContainer {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+
   
 /* Mobile responsiveness */
 @media (max-width: 768px) {

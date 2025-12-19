@@ -476,6 +476,79 @@ const getNotifications = async (user_id) => {
   return result.rows;
 };
 
+// Save a post
+const savePost = async (user_id, post_id) => {
+  try {
+    const result = await pool.query(
+      `INSERT INTO saved_posts (saved_by_user_id, original_post_id)
+       VALUES ($1, $2)
+       ON CONFLICT (saved_by_user_id, original_post_id) DO NOTHING
+       RETURNING *`,
+      [user_id, post_id]
+    );
+    return result.rows[0] || null; // null if already saved
+  } catch (err) {
+    throw err;
+  }
+};
+
+// Unsave a post
+const unsavePost = async (user_id, post_id) => {
+  const result = await pool.query(
+    `DELETE FROM saved_posts
+     WHERE saved_by_user_id = $1 AND original_post_id = $2
+     RETURNING *`,
+    [user_id, post_id]
+  );
+  return result.rows[0] || null; // null if nothing was deleted
+};
+
+// Get saved posts by user
+const getSavedPostsByUser = async (user_id) => {
+  // 1️⃣ Get all saved posts
+  const savedPostsResult = await pool.query(
+    `SELECT sp.saved_id, sp.original_post_id, sp.saved_at,
+            p.user_id AS post_owner_id, p.caption, p.created_at AS post_created_at,
+            u.username AS post_owner_username, u.profile_image AS post_owner_profile_image
+     FROM saved_posts sp
+     JOIN posts p ON sp.original_post_id = p.post_id
+     JOIN users u ON p.user_id = u.user_id
+     WHERE sp.saved_by_user_id = $1
+     ORDER BY sp.saved_at DESC`,
+    [user_id]
+  );
+
+  const savedPosts = savedPostsResult.rows;
+
+  // 2️⃣ Fetch images and reactions for each post
+  for (let post of savedPosts) {
+    // Images
+    const imagesResult = await pool.query(
+      "SELECT image_url FROM post_images WHERE post_id = $1",
+      [post.original_post_id]
+    );
+    post.images = imagesResult.rows.map(r => r.image_url);
+
+    // Reactions
+    const reactionsResult = await pool.query(
+      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      [post.original_post_id]
+    );
+    post.reactions = reactionsResult.rows;
+
+    // Did the user like this post?
+    const userLikedResult = await pool.query(
+      "SELECT 1 FROM post_reactions WHERE post_id = $1 AND user_id = $2",
+      [post.original_post_id, user_id]
+    );
+    post.userLiked = userLikedResult.rows.length > 0;
+  }
+
+  return savedPosts;
+};
+
+
+
 
 // -------------------- Export --------------------
 module.exports = {
@@ -509,4 +582,7 @@ module.exports = {
   getPostById,
   getPostsByUser,
   getNotifications,
+  savePost,
+  unsavePost,
+  getSavedPostsByUser,
 };
