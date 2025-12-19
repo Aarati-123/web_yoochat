@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "./Auth.css";
+import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -9,18 +11,10 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [profileImage, setProfileImage] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setProfileImage(file);
-    if (file) {
-      setPreviewImage(URL.createObjectURL(file));
-    } else {
-      setPreviewImage(null);
-    }
-  };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -38,9 +32,7 @@ export default function SignUp() {
     formData.append("username", username);
     formData.append("email", email);
     formData.append("password", password);
-    if (profileImage) {
-      formData.append("profileImage", profileImage);
-    }
+    // Profile image removed from signup UI; no file appended
 
     try {
       const response = await axios.post("http://localhost:3000/register", formData, {
@@ -54,180 +46,74 @@ export default function SignUp() {
   };
 
   return (
-    <div style={styles.background}>
-      <div style={styles.wrapper}>
-        {/* Branding like login */}
-        <div style={styles.brandRow}>
-          <h1 style={{ ...styles.brandPurple, margin: 0 }}>यो</h1>
-          <h1 style={{ ...styles.brandBlack, margin: 0 }}>Chat</h1>
+    <div className="authPage">
+      <div className="authGlow" />
+      <div className="authCard">
+        <div className="brandRow">
+          <h1 className="brandYo">यो</h1>
+          <h1 className="brandChat">Chat</h1>
         </div>
+        <h2 className="authTitle">Create your account</h2>
 
-        <h2 style={styles.heading}>Create Your Account</h2>
-
-        <form onSubmit={handleSignUp} style={styles.form}>
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={styles.input}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-          />
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={styles.input}
-          />
-
-          {/* Custom file input */}
-          <div style={{ marginBottom: 16 }}>
+        <form onSubmit={handleSignUp}>
+          <div className="inputRow">
+            <User size={18} className="inputIcon" />
             <input
-              type="file"
-              id="profileImage"
-              accept="image/*"
-              onChange={handleImageChange}
-              style={{ display: "none" }}
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
             />
-            <label
-              htmlFor="profileImage"
-              style={{
-                display: "inline-block",
-                width: "100%",
-                textAlign: "center",
-                backgroundColor: "#8948C2",
-                color: "#fff",
-                padding: "10px 0",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: "600",
-              }}
-            >
-              Choose Profile Image
-            </label>
           </div>
 
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt="Profile preview"
-              style={styles.previewImage}
+          <div className="inputRow">
+            <Mail size={18} className="inputIcon" />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
             />
-          )}
+          </div>
 
-          <button type="submit" style={styles.primaryBtn}>
-            Sign Up
-          </button>
+          <div className="inputRow">
+            <Lock size={18} className="inputIcon" />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <span className="inputAction" onClick={() => setShowPassword((s) => !s)}>
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </span>
+          </div>
+
+          <div className="inputRow">
+            <Lock size={18} className="inputIcon" />
+            <input
+              type={showConfirm ? "text" : "password"}
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <span className="inputAction" onClick={() => setShowConfirm((s) => !s)}>
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+            </span>
+          </div>
+          
+
+          <button type="submit" className="primaryBtn">Sign Up</button>
         </form>
 
-        <p style={styles.footerTxt}>
-          Already have an account?{" "}
-          <span
-            style={styles.linkTxt}
-            onClick={() => navigate("/login")}
-            role="button"
-            tabIndex={0}
-          >
-            Login
-          </span>
+        <p className="linkRow">
+          Already have an account? <span className="link" onClick={() => navigate("/login")}>Login</span>
         </p>
       </div>
     </div>
   );
 }
-
-const styles = {
-  background: {
-    backgroundImage: "url('/purple.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  wrapper: {
-    position: "relative",
-    zIndex: 2,
-    maxWidth: 400,
-    width: "100%",
-    padding: 20, // same as login
-    borderRadius: 12,
-    backgroundColor: "white",
-    textAlign: "center",
-    fontFamily: "Arial, sans-serif",
-    boxShadow: "0 10px 20px rgba(0,0,0,0.25), 0 6px 6px rgba(0,0,0,0.2)",
-  },
-  brandRow: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "baseline",
-    marginBottom: 40, // same as login
-  },
-  brandPurple: { fontSize: 40, fontWeight: "900", color: "#8948C2" },
-  brandBlack: { fontSize: 40, fontWeight: "900", color: "#000" },
-  heading: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 20,
-    color: "#4b5563",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  input: {
-    width: "100%",
-    height: 40,
-    marginBottom: 16,
-    padding: "0 10px",
-    fontSize: 15,
-    borderRadius: 6,
-    border: "1px solid #e5e7eb",
-    boxSizing: "border-box",
-  },
-  previewImage: {
-    width: 100,
-    height: 100,
-    borderRadius: "50%",
-    objectFit: "cover",
-    marginBottom: 16,
-    alignSelf: "center",
-    border: "2px solid #8948C2",
-  },
-  primaryBtn: {
-    width: "100%",
-    height: 40,
-    backgroundColor: "#8948C2",
-    color: "#fff",
-    fontWeight: "600",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  footerTxt: {
-    marginTop: 20,
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  linkTxt: {
-    color: "#8948C2",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-};
+ 

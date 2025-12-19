@@ -6,8 +6,8 @@
   padding: 1rem;
   box-sizing: border-box;
   overflow-y: auto;
-  height: 100vh; /* full height to scroll if needed */
-  background-color: #f8f4ff;
+  height: 100%;
+  background: transparent;
 }
 
 /* Panel title */
@@ -15,18 +15,26 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #4b0082; /* purple theme */
+  color: var(--text);
+  letter-spacing: -0.2px;
 }
 
 /* Each saved post card */
 .savedPanel .postCard {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background: var(--card-bg);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
   margin-bottom: 1rem;
-  padding: 0.75rem;
+  padding: 0.9rem;
   display: flex;
   flex-direction: column;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.savedPanel .postCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Post header */
@@ -50,24 +58,27 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
 }
 
 /* Username */
 .savedPanel .postUsername {
-  font-weight: 500;
-  color: #333;
+  font-weight: 700;
+  color: var(--text);
 }
 
 /* Post timestamp */
 .savedPanel .postTime {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 /* Post caption */
 .savedPanel .postCaption {
   margin: 0.5rem 0;
-  color: #444;
+  color: var(--text);
   font-size: 0.95rem;
 }
 
@@ -81,6 +92,7 @@
   max-height: 400px;
   border-radius: 10px;
   object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Actions (like, save) */
@@ -93,7 +105,7 @@
 /* Saved button */
 .savedPanel .saved-btn {
   padding: 0.35rem 0.75rem;
-  background-color: #4b0082; /* purple */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -103,6 +115,6 @@
 }
 
 .savedPanel .saved-btn:hover {
-  background-color: #6a0dad;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
   transform: scale(1.03);
 }

@@ -545,12 +545,14 @@ const getMyPosts = async (req, res) => {
     const user_id = req.user.user_id;
 
     const postsResult = await pool.query(
-      `SELECT p.post_id, p.caption, p.created_at,
+      `SELECT p.post_id, p.caption, p.created_at, p.user_id,
+              u.username, u.profile_image,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $1
               ) AS "userLiked"
        FROM posts p
+       JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = $1
        ORDER BY p.created_at DESC`,
       [user_id]

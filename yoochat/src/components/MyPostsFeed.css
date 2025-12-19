@@ -14,25 +14,32 @@
   flex: 1; /* each takes 50% of the width */
   overflow-y: auto; /* scroll if content is long */
   padding: 10px;
-  background-color: #f8f4ff;
+  background: transparent;
   border-radius: 10px;
-  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  box-shadow: none;
 }
 
 .panelTitle {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 15px;
-  color: #6a0dad; /* purple header */
+  color: var(--text);
 }
 
 /* Individual post card */
 .postCard {
-  background-color:#fff;
-  border-radius: 10px;
+  background: var(--card-bg);
+  border-radius: 14px;
   margin-bottom: 15px;
-  padding: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.postCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .postHeader {
@@ -53,19 +60,24 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
 }
 
 .postUsername {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .postTime {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .postCaption {
   margin-bottom: 10px;
+  color: var(--text);
 }
 
 .postImages {
@@ -76,22 +88,24 @@
   width: 100%;
   border-radius: 10px;
   object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Saved button styling (matches FriendsFeed) */
 .saved-btn {
-  background-color: #6a0dad;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 5px 12px;
-  border-radius: 5px;
+  padding: 6px 13px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
 .saved-btn:hover {
-  background-color: #4b007a;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-1px);
 }
 
 .postActions {

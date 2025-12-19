@@ -1,11 +1,13 @@
-/* Container for posts - grid layout for 3 posts per row */
+/* Container for posts - responsive grid layout */
 .friendsFeed {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  padding: 16px;
-  background-color: #f8f4ff; /* light purple background */
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+  padding: 20px;
+  background: var(--background);
   justify-items: center;
+  animation: fadeIn 0.4s ease-in;
+  transition: background 0.3s ease;
 }
 
 /* Post card styling */
@@ -15,17 +17,36 @@
   justify-content: space-between;
   width: 100%;
   max-width: 360px;
-  border: 1px solid #e0d8f7;
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(128, 0, 128, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--card-bg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.postCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ec4899);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .postCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(128, 0, 128, 0.15);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(147, 51, 234, 0.2);
+}
+
+.postCard:hover::before {
+  opacity: 1;
 }
 
 /* Post header */
@@ -43,17 +64,28 @@
 }
 
 .postAvatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #a569e3;
+  border: 3px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
+  transition: transform 0.3s ease;
+}
+
+.postAvatar:hover {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .postUsername {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #4b0082;
+  font-weight: 700;
+  font-size: 1.05rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
 }
 
 .postTime {
@@ -65,8 +97,9 @@
 .postCaption {
   margin-bottom: 12px;
   font-size: 0.95rem;
-  color: #333;
+  color: var(--text);
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 /* Carousel container for multiple images */
@@ -75,18 +108,31 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  border-radius: 12px;
+  border-radius: 16px;
   width: 100%;
-  height: 250px;
-  gap: 8px;
+  height: 280px;
+  gap: 12px;
   padding-bottom: 4px;
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-light) transparent;
 }
 
 .imageCarousel::-webkit-scrollbar {
-  display: none;
+  height: 6px;
+}
+
+.imageCarousel::-webkit-scrollbar-track {
+  background: rgba(147, 51, 234, 0.05);
+  border-radius: 3px;
+}
+
+.imageCarousel::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 3px;
+}
+
+.imageCarousel::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }
 
 .carouselImage {
@@ -117,15 +163,25 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 24px;
-  color: #9333ea !important;  /* Always Purple */
-  transition: transform 0.15s ease-in-out;
+  font-size: 28px;
+  color: #9333ea !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
+  position: relative;
 }
 
 .like-btn:hover {
-  transform: scale(1.2);
-  color: #7c2be2 !important;   /* dark purple on hover */
+  transform: scale(1.25);
+  color: #7c2be2 !important;
+  filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.5));
+}
+
+.like-btn:active {
+  animation: pulse 0.3s ease;
+}
+
+.like-btn.liked {
+  animation: pulse 0.3s ease;
 }
 
 /* Purple reactions count */
@@ -147,29 +203,42 @@
 .save-btn,
 .saved-btn {
   border: none;
-  border-radius: 6px;
-  padding: 4px 12px;
+  border-radius: 10px;
+  padding: 8px 16px;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.02em;
 }
 
 .save-btn {
-  background-color: #e0d8f7;
+  background: linear-gradient(135deg, #e0d8f7 0%, #d4c5f9 100%);
   color: #4b0082;
+  box-shadow: 0 2px 6px rgba(147, 51, 234, 0.15);
 }
 
 .save-btn:hover {
-  background-color: #cbb2f2;
+  background: linear-gradient(135deg, #cbb2f2 0%, #b89ef0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.25);
 }
 
 .saved-btn {
-  background-color: #9333ea;
+  background: linear-gradient(135deg, #9333ea 0%, #7c2be2 100%);
   color: #fff;
+  box-shadow: 0 2px 6px rgba(147, 51, 234, 0.3);
 }
 
 .saved-btn:hover {
-  background-color: #7c2be2;
+  background: linear-gradient(135deg, #7c2be2 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+}
+
+.save-btn:active,
+.saved-btn:active {
+  transform: scale(0.96);
 }
 
 /* Optional: center feed in middle panel for single-column layout */
@@ -178,8 +247,9 @@
   flex-direction: column;
   gap: 24px;
   padding: 16px;
-  background-color: #f8f4ff; /* same light purple */
+  background: var(--background);
   width: 100%;
   max-width: 720px;
   margin: 0 auto; /* center in middle panel */
+  transition: background 0.3s ease;
 }

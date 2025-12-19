@@ -9,48 +9,87 @@
 /* Left Sidebar */
 .sidebar {
   width: 60px; 
-  border-right: 1px solid #ddd;
+  border-right: none;
   display: flex;
   justify-content: center;
-  background: #9333ea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.2), transparent);
 }
 
 /* Middle Panel */
 .middlePanel {
   width: 400px; 
   max-width: 420px; 
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--border-color);
   overflow-y: auto;
-  background: #f9f9f9;
-  padding: 16px;
+  background: linear-gradient(160deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08)) , var(--card-bg);
+  backdrop-filter: blur(12px);
+  padding: 18px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04);
+  border-radius: 18px;
+  margin: 16px;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 /* Right Panel (chat window) */
 .chatPanel {
   flex: 1; 
-  border: 20px solid #9333ea; 
-  border-radius: 0px;        
-  background: #fff;
+  border: none;
+  background:
+    radial-gradient(120% 140% at 15% 20%, rgba(102,126,234,0.18), transparent 40%),
+    radial-gradient(90% 120% at 85% 15%, rgba(236,72,153,0.14), transparent 45%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.22)),
+    var(--surface);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  border-radius: 22px;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.35),
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 0 30px rgba(118,75,162,0.25);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 
 /* Search input */
 .searchInput {
   width: 90%;
-  padding: 8px 12px;
+  padding: 12px 16px;
   margin: 12px 0;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--input-bg);
+  color: var(--text);
   outline: none;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
 }
 
 .searchInput:focus {
-  border-color: #9333ea;
-  box-shadow: 0 0 5px rgba(147, 51, 234, 0.4);
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.1), 0 4px 12px rgba(147, 51, 234, 0.15);
+  transform: translateY(-1px);
 }
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Friend suggestions removed */
 
 /* Pending counts */
 .pendingCounts {
@@ -61,9 +100,10 @@
 
 .feedPanel {
   flex: 1;
-  background: #fafafa;
+  background: var(--background);
   overflow-y: auto;
   padding: 20px;
+  transition: background 0.3s ease;
 }
 
 .settingsFull {
@@ -75,8 +115,9 @@
 /* Left panel: settings list */
 .settingsPanel {
   width: 200px; /* fixed width */
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--border-color);
   padding: 12px;
+  transition: border-color 0.3s ease;
 }
 
 /* Right panel: settings content */
@@ -84,40 +125,79 @@
   flex: 1; /* take remaining space */
   padding: 16px;
   overflow-y: auto; /* scroll if content is long */
-  background-color: #f9f9f9;
+  background-color: var(--surface);
+  transition: background-color 0.3s ease;
 }
 
 .homeMainPanel {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 50% | 50% */
+  grid-template-columns: repeat(2, minmax(360px, 1fr)); /* keep widths even */
   gap: 20px;
   padding: 20px;
-  background: #f8f4ff;
+  background: var(--background);
+  transition: background 0.3s ease;
+  align-items: stretch;
 }
 
 /* LEFT: MY POSTS */
 .homeLeft {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px;
   overflow-y: auto;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.homeLeft:hover {
+  box-shadow: var(--shadow-md);
 }
 
 /* RIGHT: SAVED POSTS */
 .homeRight {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px;
   overflow-y: auto;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.homeRight:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .notificationsTwoPanelContainer {
   display: flex;
-  gap: 10px;
-  padding: 10px;
+  gap: 0;
+  padding: 0;
   height: 100%;
+  width: 100%;
   box-sizing: border-box;
+}
+
+.notificationsContainer {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.notificationPanel {
+  overflow-y: auto;
+  background: var(--surface);
+  transition: background 0.3s ease;
 }
 
 

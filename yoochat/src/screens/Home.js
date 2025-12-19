@@ -44,12 +44,14 @@ function Home() {
       try {
         if (!username) return;
 
-        if (activeTab === "Friends") {
+        // Load friends for Friends tab and Add Friend tab (used for filtering)
+        if (activeTab === "Friends" || activeTab === "Add Friend") {
           const res = await getFriends(username);
           setFriends(res?.friends || []);
         }
 
-        if (activeTab === "Pending") {
+        // Load pending/sent for Pending tab and Add Friend tab (filter & disable buttons)
+        if (activeTab === "Pending" || activeTab === "Add Friend") {
           const received = await getPendingRequests();
           const sent = await getSentRequests();
 
@@ -84,6 +86,8 @@ function Home() {
 
     return () => clearTimeout(delay);
   }, [search, activeSidebar, activeTab, token]);
+
+  // Friend suggestions removed
 
   /* ================= FRIEND ACTIONS ================= */
   const handleActionComplete = async (user, actionType) => {
@@ -151,6 +155,8 @@ function Home() {
         )
       : [];
 
+  // Suggestions removed
+
   const filteredPending =
     activeSidebar === "profile" && activeTab === "Pending"
       ? sortBySearchMatch([...receivedRequests, ...sentRequests])
@@ -183,6 +189,12 @@ function Home() {
   </div>
 )}
 
+      {/* CONTRIBUTE */}
+      {activeSidebar === "contribute" && (
+        <div className="feedPanel">
+          <ContributeFeed token={token} />
+        </div>
+      )}
 
       {/* CHAT */}
       {activeSidebar === "chat" && <ChatScreen />}
@@ -190,7 +202,9 @@ function Home() {
       {/* OTHER SCREENS */}
       {activeSidebar !== "feed" &&
         activeSidebar !== "home" &&
+        activeSidebar !== "contribute" &&
         activeSidebar !== "chat" &&
+        activeSidebar !== "notifications" &&
          (
           <>
             <div className="middlePanel">
@@ -207,6 +221,8 @@ function Home() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
+
+                  {/* Friend suggestions removed */}
 
                   {activeTab === "Friends" && (
                     <UserList
@@ -237,22 +253,6 @@ function Home() {
                 </>
               )}
 
-{activeSidebar === "notifications" && (
-  <>
-    {/* MIDDLE PANEL — FRIEND ACTIONS */}
-    <div className="middlePanel">
-      <NotificationsPage type="friends" />
-    </div>
-
-    {/* RIGHT PANEL — POST NOTIFICATIONS */}
-    <div className="chatPanel">
-      <NotificationsPage type="posts" />
-    </div>
-  </>
-)}
-
-
-
               {activeSidebar === "settings" && (
                 <SettingsPanel onSelectSetting={setSelectedSetting} />
               )}
@@ -263,9 +263,6 @@ function Home() {
               <div className="chatPanel">
                 {selectedSetting === "EditProfile" && (
                   <EditProfile token={token} />
-                )}
-                {selectedSetting === "ContributeFeed" && (
-                  <ContributeFeed token={token} />
                 )}
                 {selectedSetting === "ArchivedChats" && (
                   <p>Archived chats here.</p>
@@ -279,6 +276,21 @@ function Home() {
             )}
           </>
         )}
+
+      {/* NOTIFICATIONS - TWO PANELS */}
+      {activeSidebar === "notifications" && (
+        <div className="notificationsContainer">
+          {/* LEFT PANEL — FRIEND ACTIONS */}
+          <div className="notificationPanel">
+            <NotificationsPage type="friends" />
+          </div>
+
+          {/* RIGHT PANEL — POST NOTIFICATIONS */}
+          <div className="notificationPanel">
+            <NotificationsPage type="posts" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

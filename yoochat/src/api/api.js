@@ -21,6 +21,8 @@ export const searchUsers = async (query, token) => {
   }
 };
 
+// (Removed getFriendSuggestions — friend suggestions feature disabled)
+
 export const getFriends = async (username) => {
   try {
     const res = await fetch(`${API_URL}/friendship/list/${username}`, { headers: getAuthHeaders() });
