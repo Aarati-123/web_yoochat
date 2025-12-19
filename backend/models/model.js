@@ -379,7 +379,7 @@ const reactToPost = async (user_id, post_id) => {
   } else {
     // Like → add reaction
     await pool.query(
-      "INSERT INTO post_reactions (post_id, user_id, reaction_type) VALUES ($1, $2, 'like')",
+      "INSERT INTO post_reactions (post_id, user_id) VALUES ($1, $2)",
       [post_id, user_id]
     );
 
@@ -392,12 +392,19 @@ const reactToPost = async (user_id, post_id) => {
     const postOwnerId = postOwnerResult.rows[0].user_id;
 
     if (postOwnerId !== user_id) {
-      await pool.query(
-        `INSERT INTO notifications (user_id, actor_id, type, post_id, message, created_at)
-         VALUES ($1, $2, 'like', $3, $4, NOW())
-         ON CONFLICT (user_id, actor_id, type, post_id) DO NOTHING`,
-        [postOwnerId, user_id, post_id, `User ID ${user_id} reacted 💜 to your post.`]
+      // Check if notification already exists before inserting
+      const existingNotif = await pool.query(
+        'SELECT 1 FROM notifications WHERE user_id = $1 AND actor_id = $2 AND type = $3 AND post_id = $4',
+        [postOwnerId, user_id, 'like', post_id]
       );
+      
+      if (existingNotif.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO notifications (user_id, actor_id, type, post_id, message)
+           VALUES ($1, $2, 'like', $3, $4)`,
+          [postOwnerId, user_id, post_id, `User reacted 💜 to your post.`]
+        );
+      }
     }
 
     return { liked: true };
@@ -507,14 +514,14 @@ const unsavePost = async (user_id, post_id) => {
 const getSavedPostsByUser = async (user_id) => {
   // 1️⃣ Get all saved posts
   const savedPostsResult = await pool.query(
-    `SELECT sp.saved_id, sp.original_post_id, sp.saved_at,
+    `SELECT sp.saved_id, sp.original_post_id, sp.created_at AS saved_at,
             p.user_id AS post_owner_id, p.caption, p.created_at AS post_created_at,
             u.username AS post_owner_username, u.profile_image AS post_owner_profile_image
      FROM saved_posts sp
      JOIN posts p ON sp.original_post_id = p.post_id
      JOIN users u ON p.user_id = u.user_id
      WHERE sp.saved_by_user_id = $1
-     ORDER BY sp.saved_at DESC`,
+     ORDER BY sp.created_at DESC`,
     [user_id]
   );
 
@@ -529,12 +536,14 @@ const getSavedPostsByUser = async (user_id) => {
     );
     post.images = imagesResult.rows.map(r => r.image_url);
 
-    // Reactions
+    // Reactions - just count total reactions
     const reactionsResult = await pool.query(
-      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
       [post.original_post_id]
     );
-    post.reactions = reactionsResult.rows;
+    post.reactions = reactionsResult.rows[0]
+      ? Array(parseInt(reactionsResult.rows[0].count)).fill({})
+      : [];
 
     // Did the user like this post?
     const userLikedResult = await pool.query(
