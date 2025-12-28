@@ -36,7 +36,7 @@ const Home = () => {
             <p className="number">{registeredUsers}</p>
           </div>
           <div className="info-box">
-            <h3>Messages Sent Today</h3>
+            <h3>Total Messages Sent</h3>
             <p className="number">{messagesToday}</p>
           </div>
         </div>

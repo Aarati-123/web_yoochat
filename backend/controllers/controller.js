@@ -686,6 +686,60 @@ const getSavedPostsController = async (req, res) => {
 
 
 
+
+// -------------------------- ADMIN ----------------------------
+
+//---------- UserManagement ----------
+// Get all users for admin
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT user_id, username, email, profile_image, created_at 
+       FROM users 
+       ORDER BY created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Delete a user
+const deleteUser = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    await pool.query("DELETE FROM users WHERE user_id = $1", [user_id]);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+// Update user by admin
+const updateUserByAdmin = async (req, res) => {
+  const { user_id } = req.params;
+  const { username, email } = req.body;
+  const profile_image = req.file ? req.file.filename : null;
+
+  try {
+    const query = `
+      UPDATE users 
+      SET username = $1, email = $2 ${profile_image ? ", profile_image = $3" : ""} 
+      WHERE user_id = $4 RETURNING *`;
+    const values = profile_image ? [username, email, profile_image, user_id] : [username, email, user_id];
+    const result = await pool.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+
 module.exports = {
   register,
   login,
@@ -716,4 +770,7 @@ module.exports = {
   savePostController,
   unsavePostController,
   getSavedPostsController,
+  getAllUsers,
+  deleteUser,
+  updateUserByAdmin
 };

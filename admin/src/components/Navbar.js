@@ -19,9 +19,8 @@ function Navbar({ setIsLoggedIn }) {
   const navItems = [
     { label: "Home", icon: Homeicon, path: "/home" },
     { label: "User Management", icon: usericon, path: "/UserManagement" },
-    { label: "Chat Monitoring", icon: chatbubble, path: "/ChatMonitoring" },
-    { label: "Reported Content", icon: flagicon, path: "/ReportedAccounts" },
-    { label: "Group Management", icon: groupicon, path: "/GroupManagement" },
+    { label: "Reported Messages", icon: flagicon, path: "/ReportedAccounts" },
+    { label: "Banned Accounts", icon: chatbubble, path: "/BannedAccounts" },
   ];
 
   const handleLogout = () => {
