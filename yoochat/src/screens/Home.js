@@ -9,7 +9,6 @@ import FriendsFeed from "../components/FriendsFeed";
 import NotificationsPage from "../components/NotificationsPage";
 import MyPostsFeed from "../components/MyPostsFeed";
 import SavedPostsFeed from "../components/savedPostsFeed";
-
 import ChatScreen from "./ChatScreen";
 
 import "./Home.css";
@@ -44,13 +43,11 @@ function Home() {
       try {
         if (!username) return;
 
-        // Load friends for Friends tab and Add Friend tab (used for filtering)
         if (activeTab === "Friends" || activeTab === "Add Friend") {
           const res = await getFriends(username);
           setFriends(res?.friends || []);
         }
 
-        // Load pending/sent for Pending tab and Add Friend tab (filter & disable buttons)
         if (activeTab === "Pending" || activeTab === "Add Friend") {
           const received = await getPendingRequests();
           const sent = await getSentRequests();
@@ -86,8 +83,6 @@ function Home() {
 
     return () => clearTimeout(delay);
   }, [search, activeSidebar, activeTab, token]);
-
-  // Friend suggestions removed
 
   /* ================= FRIEND ACTIONS ================= */
   const handleActionComplete = async (user, actionType) => {
@@ -155,8 +150,6 @@ function Home() {
         )
       : [];
 
-  // Suggestions removed
-
   const filteredPending =
     activeSidebar === "profile" && activeTab === "Pending"
       ? sortBySearchMatch([...receivedRequests, ...sentRequests])
@@ -178,16 +171,16 @@ function Home() {
 
       {/* HOME */}
       {activeSidebar === "home" && (
-  <div className="homeMainPanel">
-    <div className="homeLeft">
-      <MyPostsFeed />
-    </div>
+        <div className="homeMainPanel">
+          <div className="homeLeft">
+            <MyPostsFeed />
+          </div>
 
-    <div className="homeRight">
-      <SavedPostsFeed />
-    </div>
-  </div>
-)}
+          <div className="homeRight">
+            <SavedPostsFeed />
+          </div>
+        </div>
+      )}
 
       {/* CONTRIBUTE */}
       {activeSidebar === "contribute" && (
@@ -199,93 +192,76 @@ function Home() {
       {/* CHAT */}
       {activeSidebar === "chat" && <ChatScreen />}
 
-      {/* OTHER SCREENS */}
+      {/* PROFILE / SETTINGS / FRIENDS */}
       {activeSidebar !== "feed" &&
         activeSidebar !== "home" &&
         activeSidebar !== "contribute" &&
         activeSidebar !== "chat" &&
-        activeSidebar !== "notifications" &&
-         (
+        activeSidebar !== "notifications" && (
           <>
-            <div className="middlePanel">
-              {activeSidebar === "profile" && (
-                <>
-                  <TabNav
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                  />
-
-                  <input
-                    className="searchInput"
-                    placeholder="Search users..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-
-                  {/* Friend suggestions removed */}
-
-                  {activeTab === "Friends" && (
-                    <UserList
-                      users={filteredFriends}
-                      type="friends"
-                      token={token}
-                      onActionComplete={handleActionComplete}
+            <div className="middleWrapper">
+              <div className="middlePanel">
+                {activeSidebar === "profile" && (
+                  <>
+                    <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <input
+                      className="searchInput"
+                      placeholder="Search users..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
                     />
-                  )}
+                    {activeTab === "Friends" && (
+                      <UserList
+                        users={filteredFriends}
+                        type="friends"
+                        token={token}
+                        onActionComplete={handleActionComplete}
+                      />
+                    )}
+                    {activeTab === "Add Friend" && (
+                      <UserList
+                        users={filteredUsers}
+                        type="add"
+                        token={token}
+                        onActionComplete={handleActionComplete}
+                      />
+                    )}
+                    {activeTab === "Pending" && (
+                      <UserList
+                        users={filteredPending}
+                        type="pending"
+                        token={token}
+                        onActionComplete={handleActionComplete}
+                      />
+                    )}
+                  </>
+                )}
 
-                  {activeTab === "Add Friend" && (
-                    <UserList
-                      users={filteredUsers}
-                      type="add"
-                      token={token}
-                      onActionComplete={handleActionComplete}
-                    />
-                  )}
-
-                  {activeTab === "Pending" && (
-                    <UserList
-                      users={filteredPending}
-                      type="pending"
-                      token={token}
-                      onActionComplete={handleActionComplete}
-                    />
-                  )}
-                </>
-              )}
-
-              {activeSidebar === "settings" && (
-                <SettingsPanel onSelectSetting={setSelectedSetting} />
-              )}
+                {activeSidebar === "settings" && (
+                  <SettingsPanel onSelectSetting={setSelectedSetting} />
+                )}
+              </div>
             </div>
 
             {/* SETTINGS RIGHT PANEL */}
             {activeSidebar === "settings" && (
               <div className="chatPanel">
-                {selectedSetting === "EditProfile" && (
-                  <EditProfile token={token} />
-                )}
-                {selectedSetting === "ArchivedChats" && (
-                  <p>Archived chats here.</p>
-                )}
+                {selectedSetting === "EditProfile" && <EditProfile token={token} />}
+                {selectedSetting === "ArchivedChats" && <p>Archived chats here.</p>}
                 {!selectedSetting && (
-                  <p style={{ color: "#888" }}>
-                    Select an option from settings 😎
-                  </p>
+                  <p style={{ color: "#888" }}>Select an option from settings 😎</p>
                 )}
               </div>
             )}
           </>
         )}
 
-      {/* NOTIFICATIONS - TWO PANELS */}
+      {/* NOTIFICATIONS */}
       {activeSidebar === "notifications" && (
         <div className="notificationsContainer">
-          {/* LEFT PANEL — FRIEND ACTIONS */}
           <div className="notificationPanel">
             <NotificationsPage type="friends" />
           </div>
-
-          {/* RIGHT PANEL — POST NOTIFICATIONS */}
           <div className="notificationPanel">
             <NotificationsPage type="posts" />
           </div>
