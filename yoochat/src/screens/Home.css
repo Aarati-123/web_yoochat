@@ -9,7 +9,6 @@
 /* Left Sidebar */
 .sidebar {
   width: 60px; 
-  border-right: none;
   display: flex;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -27,181 +26,121 @@
   background: linear-gradient(180deg, transparent, rgba(255,255,255,0.2), transparent);
 }
 
+/* Wrapper to center middle panel */
+.middleWrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  background: var(--background);
+}
+
 /* Middle Panel */
 .middlePanel {
-  width: 400px; 
-  max-width: 420px; 
-  border-right: 1px solid var(--border-color);
-  overflow-y: auto;
-  background: linear-gradient(160deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08)) , var(--card-bg);
-  backdrop-filter: blur(12px);
-  padding: 18px;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04);
-  border-radius: 18px;
-  margin: 16px;
-  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-}
-
-/* Right Panel (chat window) */
-.chatPanel {
-  flex: 1; 
-  border: none;
-  background:
-    radial-gradient(120% 140% at 15% 20%, rgba(102,126,234,0.18), transparent 40%),
-    radial-gradient(90% 120% at 85% 15%, rgba(236,72,153,0.14), transparent 45%),
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.22)),
-    var(--surface);
+  width: 650px; /* slightly wider */
+  max-width: 95%;
+  height: 100vh; /* full height */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  border-radius: 22px;
-  box-shadow:
-    0 18px 50px rgba(0,0,0,0.35),
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 0 30px rgba(118,75,162,0.25);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  background: linear-gradient(160deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08)), var(--card-bg);
+  backdrop-filter: blur(12px);
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04);
+  overflow-y: auto; /* vertical scroll */
 }
-
 
 /* Search input */
 .searchInput {
-  width: 90%;
+  width: 100%;
   padding: 12px 16px;
-  margin: 12px 0;
   border-radius: 12px;
   border: 2px solid transparent;
   background: var(--input-bg);
   color: var(--text);
   outline: none;
-  transition: all 0.3s ease;
   font-size: 0.95rem;
+  margin-bottom: 16px;
+  flex-shrink: 0; /* prevent shrinking */
 }
 
 .searchInput:focus {
   border-color: var(--primary);
   background: var(--surface);
   box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.1), 0 4px 12px rgba(147, 51, 234, 0.15);
-  transform: translateY(-1px);
 }
 
 .searchInput::placeholder {
   color: var(--text-secondary);
 }
 
-/* Friend suggestions removed */
-
-/* Pending counts */
-.pendingCounts {
-  margin-bottom: 12px;
-  font-weight: bold;
-  color: #555;
+/* User list */
+.middlePanel .userList {
+  flex: 1; /* take remaining space and scroll */
+  overflow-y: auto;
 }
 
+/* Feed Panels */
 .feedPanel {
   flex: 1;
   background: var(--background);
   overflow-y: auto;
   padding: 20px;
-  transition: background 0.3s ease;
 }
 
-.settingsFull {
-  display: flex; /* horizontal layout */
-  height: 100%;
-  gap: 1rem; /* optional spacing */
-}
-
-/* Left panel: settings list */
-.settingsPanel {
-  width: 200px; /* fixed width */
-  border-right: 1px solid var(--border-color);
-  padding: 12px;
-  transition: border-color 0.3s ease;
-}
-
-/* Right panel: settings content */
-.settingsContent {
-  flex: 1; /* take remaining space */
-  padding: 16px;
-  overflow-y: auto; /* scroll if content is long */
-  background-color: var(--surface);
-  transition: background-color 0.3s ease;
-}
-
+/* Home Posts Panels */
 .homeMainPanel {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(360px, 1fr)); /* keep widths even */
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
   gap: 20px;
   padding: 20px;
-  background: var(--background);
-  transition: background 0.3s ease;
-  align-items: stretch;
 }
 
-/* LEFT: MY POSTS */
-.homeLeft {
+.homeLeft, .homeRight {
   background: var(--card-bg);
   border-radius: 20px;
   padding: 20px;
   overflow-y: auto;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.homeLeft:hover {
+.homeLeft:hover, .homeRight:hover {
   box-shadow: var(--shadow-md);
 }
 
-/* RIGHT: SAVED POSTS */
-.homeRight {
-  background: var(--card-bg);
-  border-radius: 20px;
-  padding: 20px;
+/* Right Panel (chat/settings) */
+.chatPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  border-radius: 22px;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.35),
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 0 30px rgba(118,75,162,0.25);
 }
 
-.homeRight:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.notificationsTwoPanelContainer {
-  display: flex;
-  gap: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  box-sizing: border-box;
-}
-
+/* Notifications */
 .notificationsContainer {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
   height: 100%;
-  width: 100%;
 }
 
 .notificationPanel {
   overflow-y: auto;
   background: var(--surface);
-  transition: background 0.3s ease;
 }
 
-
-  
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .homeContainer {
@@ -210,14 +149,13 @@
 
   .sidebar {
     width: 100%;
-    border-right: none;
     border-bottom: 1px solid #ddd;
   }
 
   .middlePanel {
-    width: 100%;
-    max-width: 100%;
-    padding: 8px;
+    width: 90%;
+    height: auto;
+    padding: 12px;
   }
 
   .chatPanel {
@@ -225,4 +163,3 @@
     height: 200px;
   }
 }
-    
