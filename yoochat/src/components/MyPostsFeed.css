@@ -1,28 +1,18 @@
 /* src/components/MyPostsFeed.css */
 
-.myFeedLayout {
-  display: flex;
+.myPostsPanel {
   width: 100%;
-  height: 100vh; /* full height of the screen */
-  gap: 10px; /* small gap between left and right panels */
-  padding: 10px;
+  height: 100vh; /* full screen height */
+  overflow-y: auto; /* vertical scroll */
+  padding: 20px;
   box-sizing: border-box;
-}
-
-.leftPanel,
-.rightPanel {
-  flex: 1; /* each takes 50% of the width */
-  overflow-y: auto; /* scroll if content is long */
-  padding: 10px;
-  background: transparent;
-  border-radius: 10px;
-  box-shadow: none;
+  background: var(--background);
 }
 
 .panelTitle {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   color: var(--text);
 }
 
@@ -30,8 +20,8 @@
 .postCard {
   background: var(--card-bg);
   border-radius: 14px;
-  margin-bottom: 15px;
-  padding: 12px;
+  margin-bottom: 20px;
+  padding: 15px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -46,7 +36,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .postHeaderLeft {
@@ -56,8 +46,8 @@
 }
 
 .postAvatar {
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid transparent;
@@ -76,22 +66,40 @@
 }
 
 .postCaption {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: var(--text);
 }
 
+/* Instagram-style horizontal scroll for post images */
 .postImages {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
   margin-bottom: 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
 }
 
-.singleImage {
-  width: 100%;
-  border-radius: 10px;
+.scrollImage {
+  flex: 0 0 auto; /* prevents shrinking */
+  width: 300px;   /* adjust width */
+  height: 300px;  /* square images like Instagram */
   object-fit: cover;
+  border-radius: 10px;
   box-shadow: var(--shadow-sm);
+  scroll-snap-align: start;
 }
 
-/* Saved button styling (matches FriendsFeed) */
+/* Hide scrollbar for cleaner look */
+.postImages::-webkit-scrollbar {
+  display: none;
+}
+.postImages {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Saved button styling */
 .saved-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
