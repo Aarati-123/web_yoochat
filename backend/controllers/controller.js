@@ -687,7 +687,7 @@ const getSavedPostsController = async (req, res) => {
 
 
 
-// -------------------------- ADMIN ----------------------------
+// =========================== ADMIN =============================
 
 //---------- UserManagement ----------
 // Get all users for admin
@@ -738,6 +738,60 @@ const updateUserByAdmin = async (req, res) => {
   }
 };
 
+// -------Report Feature------
+
+
+// -------------------- Report in Webapp--------------------
+const reportMessages = async (req, res) => {
+  try {
+    const reported_by = req.user.user_id; // from JWT middleware
+    const { reported_about, reason, message_ids } = req.body;
+
+    // Basic validations
+    if (!reported_about || !reason || !Array.isArray(message_ids) || message_ids.length === 0) {
+      return res.status(400).json({ message: "Invalid report data" });
+    }
+
+    // Optional: verify messages belong to this conversation
+    const checkQuery = `
+      SELECT message_id
+      FROM message
+      WHERE message_id = ANY($1)
+        AND (
+          (sender_id = $2 AND receiver_id = $3)
+          OR
+          (sender_id = $3 AND receiver_id = $2)
+        )
+    `;
+
+    const checkResult = await pool.query(checkQuery, [
+      message_ids,
+      reported_by,
+      reported_about,
+    ]);
+
+    if (checkResult.rowCount !== message_ids.length) {
+      return res.status(403).json({ message: "Invalid message selection" });
+    }
+
+    // Insert report
+    await pool.query(
+      `
+      INSERT INTO reported_messages
+      (reported_by, reported_about, reason, message_ids)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [reported_by, reported_about, reason, message_ids]
+    );
+
+    return res.status(201).json({ message: "Messages reported successfully" });
+  } catch (err) {
+    console.error("Report Messages Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
 
 
 module.exports = {
@@ -772,5 +826,6 @@ module.exports = {
   getSavedPostsController,
   getAllUsers,
   deleteUser,
-  updateUserByAdmin
+  updateUserByAdmin,
+  reportMessages
 };

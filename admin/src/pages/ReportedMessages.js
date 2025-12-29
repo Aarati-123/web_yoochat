@@ -1,14 +1,14 @@
 import Navbar from "../components/Navbar";
-
-const ReportedAccounts = () => {
+import "./ReportedMessages.css";
+const ReportedMessages = () => {
   return (
     <div>
       <Navbar />
       <div style={{ padding: "20px" }}>
-        <h1>ReportedAccounts</h1>
+        <h1>Reported Messages</h1>
       </div>
     </div>
   );
 };
 
-export default ReportedAccounts;
+export default ReportedMessages;

@@ -88,7 +88,7 @@ function UserManagement() {
                 <td>{user.email}</td>
                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                 <td>
-                  <button className="action-btn">Edit</button>
+                  
                   <button
                     className="action-btn delete"
                     onClick={() => handleDelete(user.user_id)}
