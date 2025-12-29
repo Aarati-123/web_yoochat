@@ -50,10 +50,19 @@ function MyPostsFeed() {
             </div>
             <span className="postTime">{new Date(post.created_at).toLocaleString()}</span>
           </div>
+
           {post.caption && <p className="postCaption">{post.caption}</p>}
+
           {post.images?.length > 0 && (
             <div className="postImages">
-              <img src={post.images[0]} alt="Post" className="singleImage" />
+              {post.images.map((img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  alt={`Post ${index + 1}`}
+                  className="scrollImage"
+                />
+              ))}
             </div>
           )}
         </div>
