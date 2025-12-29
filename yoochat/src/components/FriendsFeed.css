@@ -2,7 +2,7 @@
 .friendsFeed {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 28px;
+  gap: 40px; /* increased from 28px to 40px for more space between posts */
   padding: 20px;
   background: var(--background);
   justify-items: center;
