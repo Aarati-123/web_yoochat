@@ -686,6 +686,114 @@ const getSavedPostsController = async (req, res) => {
 
 
 
+
+// =========================== ADMIN =============================
+
+//---------- UserManagement ----------
+// Get all users for admin
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT user_id, username, email, profile_image, created_at 
+       FROM users 
+       ORDER BY created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Delete a user
+const deleteUser = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    await pool.query("DELETE FROM users WHERE user_id = $1", [user_id]);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+// Update user by admin
+const updateUserByAdmin = async (req, res) => {
+  const { user_id } = req.params;
+  const { username, email } = req.body;
+  const profile_image = req.file ? req.file.filename : null;
+
+  try {
+    const query = `
+      UPDATE users 
+      SET username = $1, email = $2 ${profile_image ? ", profile_image = $3" : ""} 
+      WHERE user_id = $4 RETURNING *`;
+    const values = profile_image ? [username, email, profile_image, user_id] : [username, email, user_id];
+    const result = await pool.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// -------Report Feature------
+
+
+// -------------------- Report in Webapp--------------------
+const reportMessages = async (req, res) => {
+  try {
+    const reported_by = req.user.user_id; // from JWT middleware
+    const { reported_about, reason, message_ids } = req.body;
+
+    // Basic validations
+    if (!reported_about || !reason || !Array.isArray(message_ids) || message_ids.length === 0) {
+      return res.status(400).json({ message: "Invalid report data" });
+    }
+
+    // Optional: verify messages belong to this conversation
+    const checkQuery = `
+      SELECT message_id
+      FROM message
+      WHERE message_id = ANY($1)
+        AND (
+          (sender_id = $2 AND receiver_id = $3)
+          OR
+          (sender_id = $3 AND receiver_id = $2)
+        )
+    `;
+
+    const checkResult = await pool.query(checkQuery, [
+      message_ids,
+      reported_by,
+      reported_about,
+    ]);
+
+    if (checkResult.rowCount !== message_ids.length) {
+      return res.status(403).json({ message: "Invalid message selection" });
+    }
+
+    // Insert report
+    await pool.query(
+      `
+      INSERT INTO reported_messages
+      (reported_by, reported_about, reason, message_ids)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [reported_by, reported_about, reason, message_ids]
+    );
+
+    return res.status(201).json({ message: "Messages reported successfully" });
+  } catch (err) {
+    console.error("Report Messages Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+
+
 module.exports = {
   register,
   login,
@@ -716,4 +824,8 @@ module.exports = {
   savePostController,
   unsavePostController,
   getSavedPostsController,
+  getAllUsers,
+  deleteUser,
+  updateUserByAdmin,
+  reportMessages
 };

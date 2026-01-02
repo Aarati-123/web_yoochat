@@ -8,8 +8,27 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// app.use(cors({
+//   origin: "http://localhost:3002", // frontend URL
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true,
+// }));
+
+// ------ Allow multiple origins ------
+const allowedOrigins = [
+  "http://localhost:3001", // Yoochat app frontend
+  "http://localhost:3002", // admin panel frontend
+];
+
 app.use(cors({
-  origin: "http://localhost:3002", // frontend URL
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true); // server requests
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
