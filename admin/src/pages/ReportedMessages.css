@@ -1,0 +1,152 @@
+body{
+  background-color: #f2f2f7;
+}
+.reported-container {
+  padding: 20px;
+  margin: 0px 50px 50px 280px;
+  border-radius: 8px;
+}
+
+.reported-container h2 {
+  margin-bottom: 15 px;
+}
+
+
+/* ================= TABLE ================= */
+.reported-table {
+  width: 100%;
+  border-collapse: separate; /* allow spacing between rows */
+  border-spacing: 0 10px;    /* vertical gap between rows */
+  border-radius: 8px;
+}
+
+.reported-table th,
+.reported-table td {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.95rem;
+  border: none; /* remove all borders by default */
+}
+/* ================= TABLE HEADER ================= */
+.reported-table th {
+  background-color: transparent;
+  font-weight: 600;
+  color: #8e2de2; /* purple text */
+  border: none;
+  
+}
+/* ================= MAIN ROWS ================= */
+.reported-table tbody tr:not(.expanded-row) {
+  background: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reported-table tbody tr:not(.expanded-row):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
+.reported-table tbody tr:not(.expanded-row) td {
+  color: #000000;
+  border-radius: 8px;
+}
+/* ================= EXPANDED ROW ================= */
+.expanded-row td {
+  background-color: #fafafa;
+  border: 1px solid #ddd; /* keep box for expanded details */
+  padding: 16px;
+  border-radius: 8px;
+}
+/* Reason Tag */
+.reason-tag {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #f2bdff;
+  font-size: 0.85rem;
+}
+
+/* ================= VIEW BUTTON ================= */
+.view-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background-color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s ease;
+}
+
+.view-btn:hover {
+  background-color: #e1d1ef;
+}
+
+.view-btn:active {
+  background-color: #8800ff;
+  color: white;
+}
+
+/* Details Panel */
+.report-details {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid #ddd;
+}
+
+.message-contents{
+  padding-bottom: 5px;
+  padding-top: 8px;
+}
+.message-contents > strong {
+  font-size: 1.2rem; 
+  color: #4B0082;    
+  display: block; 
+  margin-left: 2rem;   
+  margin-bottom: 0.5rem;
+}
+
+.message-list p {
+  padding: 3px;
+  margin-left: 2rem;     
+  line-height: 1.4;
+}
+
+/* Admin Actions */
+.admin-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-actions button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.approve {
+  background: #3dbd5b;
+}
+
+.dismiss {
+  background: #fdff9f;
+}
+
+.warn {
+  background: #ff9372;
+}
+
+/* Close */
+.close-btn {
+  margin-top: 15px;
+  padding: 6px 12px;
+  border: none;
+  background: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}

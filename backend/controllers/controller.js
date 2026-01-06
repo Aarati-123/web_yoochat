@@ -791,6 +791,80 @@ const reportMessages = async (req, res) => {
   }
 };
 
+// -------------------- Admin: Get Reported Messages --------------------
+const getReportedMessages = async (req, res) => {
+  try {
+    const reportResult = await pool.query(`
+      SELECT 
+        rm.report_id,
+        rm.report_date,
+        rm.reason,
+        rm.message_ids,
+        u1.username AS reported_by_username,
+        u2.username AS reported_about_username
+      FROM reported_messages rm
+      JOIN users u1 ON rm.reported_by = u1.user_id
+      JOIN users u2 ON rm.reported_about = u2.user_id
+      ORDER BY rm.report_date DESC
+    `);
+
+    const reports = reportResult.rows;
+
+    // collect all message IDs
+    const allMessageIds = reports
+      .flatMap(r => r.message_ids || [])
+      .filter(Boolean);
+
+    let messagesMap = {};
+
+    if (allMessageIds.length > 0) {
+      const msgResult = await pool.query(
+        `
+        SELECT 
+          m.message_id,
+          m.content,
+          s.username AS sender_username,
+          r.username AS receiver_username
+        FROM message m
+        JOIN users s ON m.sender_id = s.user_id
+        JOIN users r ON m.receiver_id = r.user_id
+        WHERE m.message_id = ANY($1::int[])
+        `,
+        [allMessageIds]
+      );
+
+      msgResult.rows.forEach(msg => {
+        let decrypted = "[Unable to decrypt]";
+        try {
+          decrypted = decryptHill(msg.content, process.env.HILL_KEY);
+        } catch (e) {
+          console.error("Decryption failed:", e.message);
+        }
+
+        messagesMap[msg.message_id] = {
+          message_id: msg.message_id,
+          sender_username: msg.sender_username,
+          receiver_username: msg.receiver_username,
+          content: decrypted
+        };
+      });
+    }
+
+    // attach messages to each report
+    reports.forEach(report => {
+      report.messages = (report.message_ids || [])
+        .map(id => messagesMap[id])
+        .filter(Boolean);
+    });
+
+    res.json(reports);
+  } catch (err) {
+    console.error("Fetch Reported Messages Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 
 
@@ -827,5 +901,6 @@ module.exports = {
   getAllUsers,
   deleteUser,
   updateUserByAdmin,
-  reportMessages
+  reportMessages,
+  getReportedMessages
 };

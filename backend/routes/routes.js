@@ -116,6 +116,8 @@ router.put("/admin/users/:user_id", upload.single("profileImage"), controller.up
 //--------------------- Reporting feature------------
 router.post("/report-message", verifyToken, controller.reportMessages);
 
+// =================== ADMIN REPORTS ===================
+router.get("/admin/reported-messages", controller.getReportedMessages);
 
 
 module.exports = router;

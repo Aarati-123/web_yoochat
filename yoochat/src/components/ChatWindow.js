@@ -24,6 +24,16 @@ function ChatWindow({ user }) {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+    const messagesContainerRef = useRef(null); // scroll to bottom is forced so only if new message comes up
+    const prevMessageCountRef = useRef(0);
+
+    const isUserNearBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return false;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    };
+
+
 
   useEffect(() => {
     if (!user) return;
@@ -43,9 +53,13 @@ function ChatWindow({ user }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  useEffect(() => {
+useEffect(() => {
+  const newMessageArrived = messages.length > prevMessageCountRef.current;
+  if (newMessageArrived && isUserNearBottom()) {
     scrollToBottom();
-  }, [messages]);
+  }
+  prevMessageCountRef.current = messages.length;
+}, [messages]);
 
    // ------------------- MESSAGE REPORT HANDLERS -------------------
   const toggleSelectMessage = (message_id) => {
@@ -113,6 +127,7 @@ function ChatWindow({ user }) {
     };
 
     setMessages((prev) => [...prev, tempMessage]);
+    scrollToBottom();
     setInput("");
 
     // Remove 'new' class after animation
@@ -171,7 +186,7 @@ function ChatWindow({ user }) {
       </div>
 
       {/* Messages */}
-      <div className="chatWindowMessages">
+      <div className="chatWindowMessages" ref={messagesContainerRef}>
         {messages.map((msg) => {
           const time = new Date(msg.timestamp || msg.message_time).toLocaleTimeString([], {
             hour: "2-digit",
