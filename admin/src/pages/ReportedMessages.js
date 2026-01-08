@@ -12,6 +12,7 @@ function ReportedMessages() {
         const res = await axios.get(
           "http://localhost:3000/admin/reported-messages"
         );
+         console.log("Fetched reports:", res.data);
         setReports(res.data);
       } catch (err) {
         console.error("Failed to fetch reports", err);
@@ -27,6 +28,54 @@ function ReportedMessages() {
     }));
   };
 
+  // +++++++++++++++ Helper Functions for Status Updating +++++++++++++++++
+
+const updateStatus = async (reportId, newStatus) => {
+  try {
+    // Update DB
+    await axios.patch(
+      `http://localhost:3000/admin/reported-messages/${reportId}`,
+      { status: newStatus }
+    );
+
+    // Update local state
+    setReports((prev) => {
+      const updated = prev.map((r) =>
+        r.report_id === reportId ? { ...r, status: newStatus } : r
+      );
+
+      // Reorder rows
+      let pending = updated.filter((r) => r.status === "Pending");
+      let valid = updated.filter((r) => r.status === "Valid");
+      let dismissed = updated.filter((r) => r.status === "Dismissed");
+
+      if (newStatus === "Valid") {
+        return [...pending, ...valid, ...dismissed];
+      } else if (newStatus === "Dismissed") {
+        return [...valid, ...dismissed, ...pending.filter(r => r.report_id !== reportId)];
+      } else {
+        return updated;
+      }
+    });
+  } catch (err) {
+    console.error("Failed to update status", err);
+  }
+};
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case "Pending":
+      return "status-pending";
+    case "Dismissed":
+      return "status-dismissed";
+    case "Valid":
+      return "status-valid";
+    default:
+      return "";
+  }
+};
+
+
   return (
     <div className="reported-container">
       <h2>Reported Messages</h2>
@@ -35,6 +84,7 @@ function ReportedMessages() {
         <thead>
           <tr>
             <th>ID</th>
+            <th>Status</th> 
             <th>Reported By</th>
             <th>Reported About</th>
             <th>Reason</th>
@@ -46,7 +96,7 @@ function ReportedMessages() {
         <tbody>
           {reports.length === 0 ? (
             <tr>
-              <td colSpan="6" className="empty">
+              <td colSpan="7" className="empty">
                 No reports found
               </td>
             </tr>
@@ -56,6 +106,9 @@ function ReportedMessages() {
                 {/* ================= MAIN ROW ================= */}
                 <tr>
                   <td>{report.report_id}</td>
+                  <td> 
+                    <span className={getStatusClass(report.status)}> {report.status} </span> 
+                  </td>
                   <td>{report.reported_by_username}</td>
                   <td>{report.reported_about_username}</td>
                   <td>
@@ -77,7 +130,7 @@ function ReportedMessages() {
                 {/* ================= EXPANDED ROW ================= */}
                 {expandedReports[report.report_id] && (
                   <tr className="expanded-row">
-                    <td colSpan="6">
+                    <td colSpan="7">
                       <div className="expanded-content">
                         {/* <p>
                           <strong>Reported By:</strong>{" "}
@@ -93,7 +146,7 @@ function ReportedMessages() {
 
                         <div className="message-contents">
                           <strong>Messages:</strong>
-                           <div className="message-list">
+                           <div className="message-lis t">
                             {Array.isArray(report.messages) && report.messages.length > 0 ? (
                             report.messages.map(msg => (
                             <p key={msg.message_id}>
@@ -107,8 +160,8 @@ function ReportedMessages() {
                         </div>
 
                         <div className="admin-actions">
-                          <button disabled>Mark Valid</button>
-                          <button disabled>Dismiss</button>
+                          <button onClick={() => updateStatus(report.report_id, "Valid")}>Mark Valid</button>
+                          <button onClick={() => updateStatus(report.report_id, "Dismissed")}>Dismiss</button>
                           <button disabled>Warn User</button>
                           <button disabled>Ban User</button>
                         </div>

@@ -60,6 +60,31 @@ body{
   padding: 16px;
   border-radius: 8px;
 }
+
+.status-pending {
+  background: #e4e4e4;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.status-dismissed {
+  background: #afcfff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.status-valid {
+  background: #a6eb95;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
 /* Reason Tag */
 .reason-tag {
   padding: 4px 10px;

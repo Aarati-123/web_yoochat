@@ -119,5 +119,8 @@ router.post("/report-message", verifyToken, controller.reportMessages);
 // =================== ADMIN REPORTS ===================
 router.get("/admin/reported-messages", controller.getReportedMessages);
 
+// Admin updates status of a report
+router.patch("/admin/reported-messages/:reportId", controller.updateReportStatus);
+
 
 module.exports = router;

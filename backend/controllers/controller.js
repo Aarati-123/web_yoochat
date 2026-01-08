@@ -800,6 +800,7 @@ const getReportedMessages = async (req, res) => {
         rm.report_date,
         rm.reason,
         rm.message_ids,
+        rm.status,
         u1.username AS reported_by_username,
         u2.username AS reported_about_username
       FROM reported_messages rm
@@ -855,6 +856,10 @@ const getReportedMessages = async (req, res) => {
       report.messages = (report.message_ids || [])
         .map(id => messagesMap[id])
         .filter(Boolean);
+
+         if (!report.status) {
+    report.status = "Pending"; // fallback
+  }
     });
 
     res.json(reports);
@@ -864,6 +869,29 @@ const getReportedMessages = async (req, res) => {
   }
 };
 
+// -------------------- Admin: Update Report Status --------------------
+const updateReportStatus = async (req, res) => {
+  const { reportId } = req.params;
+  const { status } = req.body;
+
+  // validate status
+  const validStatuses = ["Pending", "Dismissed", "Valid"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status value" });
+  }
+
+  try {
+    await pool.query(
+      "UPDATE reported_messages SET status = $1 WHERE report_id = $2",
+      [status, reportId]
+    );
+
+    res.json({ success: true, reportId, status });
+  } catch (err) {
+    console.error("Update Report Status Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 
@@ -902,5 +930,6 @@ module.exports = {
   deleteUser,
   updateUserByAdmin,
   reportMessages,
-  getReportedMessages
+  getReportedMessages,
+  updateReportStatus,
 };
