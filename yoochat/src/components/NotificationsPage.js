@@ -46,7 +46,11 @@ const NotificationsPage = ({ type }) => {
             n.type === "friend_accept" ||
             n.type === "friend_decline"
         )
-      : notifications.filter((n) => n.type === "like");
+      : notifications.filter(
+        (n) => 
+          n.type === "like" || 
+          n.type === "admin_warning"
+        );
 
   if (!filteredNotifications.length) {
     return (
@@ -63,27 +67,38 @@ const NotificationsPage = ({ type }) => {
       </h2>
 
       {filteredNotifications.map((n) => (
-        <div key={n.notification_id} className="notificationCard">
-          <img
-            src={n.sender_profile_image}
-            alt={n.sender_username || "User"}
-            className="notificationAvatar"
-          />
+        <div
+            key={n.notification_id}
+            className={`notificationCard ${n.type === "admin_warning" ? "adminNotification" : ""}`}
+          >
+
+          {n.type !== "admin_warning" && (
+            <img
+              src={n.sender_profile_image}
+              alt={n.sender_username || "User"}
+              className="notificationAvatar"
+            />
+          )}
 
           <div className="notificationContent">
-            <p className="notificationMessage">
-              {type === "friends" ? (
-                n.type === "friend_request" ? (
-                  `${n.sender_username} sent you a friend request`
-                ) : n.type === "friend_accept" ? (
-                  `${n.sender_username} accepted your friend request`
-                ) : (
-                  `${n.sender_username} declined your friend request`
-                )
-              ) : (
-                `${n.sender_username} reacted 💜 to your post`
-              )}
-            </p>
+            <p
+            className={`notificationMessage ${
+              n.type === "warning" ? "warningNotification" : ""
+            }`}
+            dangerouslySetInnerHTML={{
+              __html:
+                n.type === "admin_warning"
+                  ? n.message
+                  : type === "friends"
+                  ? n.type === "friend_request"
+                    ? `${n.sender_username} sent you a friend request`
+                    : n.type === "friend_accept"
+                    ? `${n.sender_username} accepted your friend request`
+                    : `${n.sender_username} declined your friend request`
+                  : `${n.sender_username} reacted 💜 to your post`,
+            }}
+          ></p>
+
 
             {type === "posts" && n.post_thumbnail && (
               <img

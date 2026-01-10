@@ -122,5 +122,7 @@ router.get("/admin/reported-messages", controller.getReportedMessages);
 // Admin updates status of a report
 router.patch("/admin/reported-messages/:reportId", controller.updateReportStatus);
 
+//Warning the user
+router.post("/admin/users/:user_id/warn", controller.warnUser);
 
 module.exports = router;

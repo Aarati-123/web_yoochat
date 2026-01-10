@@ -159,10 +159,36 @@ const getStatusClass = (status) => {
                           </div>
                         </div>
 
+                        <div className="user-stats">
+                        <p> <strong>Warning Count:</strong> {report.warning_count} </p>
+                        <p> <strong>Ban Count:</strong> {report.ban_count} </p>
+                        </div>
+
                         <div className="admin-actions">
                           <button onClick={() => updateStatus(report.report_id, "Valid")}>Mark Valid</button>
                           <button onClick={() => updateStatus(report.report_id, "Dismissed")}>Dismiss</button>
-                          <button disabled>Warn User</button>
+                          <button
+                         onClick={async () => {
+                         try {
+                         const res = await axios.post(
+                           `http://localhost:3000/admin/users/${report.reported_about}/warn`
+                              );
+
+                          // update local state for immediate UI feedback
+                            setReports((prev) =>
+                              prev.map((r) =>
+                                 r.report_id === report.report_id
+                                   ? { ...r, warning_count: res.data.warning_count }
+                                     : r
+                                       )
+                                      );
+                               } catch (err) {
+                              console.error("Failed to warn user", err);
+                                }
+                               }}
+                                >
+                                 Warn User
+                            </button>
                           <button disabled>Ban User</button>
                         </div>
                       </div>

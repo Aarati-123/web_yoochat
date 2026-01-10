@@ -147,6 +147,14 @@ body{
   gap: 10px;
 }
 
+.user-stats p{
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
 .admin-actions button {
   padding: 8px 14px;
   border-radius: 6px;

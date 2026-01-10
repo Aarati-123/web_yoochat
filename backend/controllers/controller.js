@@ -4,8 +4,13 @@ const jwt = require("jsonwebtoken");
 const userModel = require("../models/model");
 const { pool } = require("../models/model"); 
 const reactToPost = require("../models/model");
+const { sendAdminWarningNotification } = require("../models/model");
 
-
+// const { userModel,
+//         pool,
+//         reactToPost,
+//         sendAdminWarningNotification
+//       } = require("../models/model"); 
 
 const hillKey = process.env.HILL_KEY;
 if (!hillKey || hillKey.length !== 4) {
@@ -801,8 +806,11 @@ const getReportedMessages = async (req, res) => {
         rm.reason,
         rm.message_ids,
         rm.status,
+        rm.reported_about, 
         u1.username AS reported_by_username,
-        u2.username AS reported_about_username
+        u2.username AS reported_about_username,
+        u2.warning_count AS warning_count,
+        u2.ban_count AS ban_count
       FROM reported_messages rm
       JOIN users u1 ON rm.reported_by = u1.user_id
       JOIN users u2 ON rm.reported_about = u2.user_id
@@ -894,7 +902,31 @@ const updateReportStatus = async (req, res) => {
 };
 
 
+//--------------- INSERT WARNING IN NOTIFICATION--------------
 
+const warnUser = async (req, res) => {
+  console.log("WARN PARAMS:", req.params)
+  const { user_id } = req.params;
+
+  try {
+    // Increment warning_count
+    const updatedUser = await pool.query(
+      `UPDATE users
+       SET warning_count = warning_count + 1
+       WHERE user_id = $1
+       RETURNING warning_count`,
+      [user_id]
+    );
+
+    // Send admin notification
+    await sendAdminWarningNotification(user_id);
+
+    res.json({ success: true, warning_count: updatedUser.rows[0].warning_count });
+  } catch (err) {
+    console.error("Warn User Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   register,
@@ -932,4 +964,5 @@ module.exports = {
   reportMessages,
   getReportedMessages,
   updateReportStatus,
+  warnUser,
 };
