@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 app.use(cors({
-  origin: "http://localhost:3001", // frontend URL
+  origin: "http://localhost:3002", // frontend URL
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));

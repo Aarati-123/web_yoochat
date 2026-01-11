@@ -77,15 +77,28 @@ function ChatScreen() {
       </div>
 
       {/* RIGHT PANEL: Conversation */}
-      <div className="chatConversationPanel">
-        {selectedFriend ? (
-          <ChatWindow user={selectedFriend} />
-        ) : (
-          <div className="chatPlaceholder">
-            Select a friend to start chatting 💬
-          </div>
-        )}
+      <div
+  className={`chatConversationPanel ${
+    selectedFriend ? "chatWindowActive" : ""
+  }`}
+>
+  {selectedFriend ? (
+    <ChatWindow user={selectedFriend} />
+  ) : (
+    <div className="chatPlaceholder">
+      <div className="bubblesContainer">
+        <div className="bubble">💬</div>
+        <div className="bubble">👋</div>
+        <div className="bubble">😊</div>
+        <div className="bubble">💌</div>
+        <div className="bubble">💜</div>
       </div>
+      <h2>Start chatting with your friends!</h2>
+      <p>Pick a friend from the left to begin a conversation 💜</p>
+    </div>
+  )}
+</div>
+
     </div>
   );
 }

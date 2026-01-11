@@ -1,72 +1,80 @@
-.notificationsWrapper {
-  padding: 1rem;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.notificationsHeader {
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-  color: #9333ea;
-}
-
+/* ❌ NOT USED ANYMORE — safe to delete */
+.notificationsTwoPanelWrapper,
+.notificationsLeftPanel,
+.notificationsRightPanel,
 .notificationsList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  display: none;
 }
 
+/* ✅ SINGLE PANEL (used in both middlePanel & chatPanel) */
+.notificationsSinglePanel {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  box-sizing: border-box;
+  background-color: var(--surface);
+  transition: background-color 0.3s ease;
+}
+
+/* Notification card */
 .notificationCard {
   display: flex;
-  align-items: center;
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 0.8rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+  transition: background 0.3s ease;
 }
 
 .notificationCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--hover-bg);
+  border-radius: 8px;
 }
 
+/* Avatar */
 .notificationAvatar {
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 1rem;
 }
 
+/* Content */
 .notificationContent {
   flex: 1;
 }
 
+/* Message */
 .notificationMessage {
-  margin: 0 0 0.3rem 0;
-  font-weight: 500;
-  color: #333;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  transition: color 0.3s ease;
 }
 
+/* Time */
 .notificationTime {
-  font-size: 0.75rem;
-  color: #999;
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #888;
 }
 
-.unread {
-  border-left: 4px solid #9333ea;
+/* Post thumbnail */
+.notificationPostThumbnail {
+  width: 52px;
+  height: 52px;
+  margin-top: 6px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
-.read {
-  opacity: 0.8;
-}
-
-.loadingText,
-.noNotifications {
-  text-align: center;
-  color: #666;
-  margin-top: 2rem;
-  font-size: 1rem;
+/* Title */
+.panelTitle {
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.3s ease;
 }

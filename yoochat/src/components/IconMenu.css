@@ -1,13 +1,29 @@
 .iconMenu {
   width: 60px;
-  background: #9333ea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* logo and icons at top */
+  justify-content: flex-start;
   align-items: center;
   padding: 15px 0;
-  transition: width 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.iconMenu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, 
+    rgba(255,255,255,0.1) 0%, 
+    transparent 50%, 
+    rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
 }
 
 .iconMenu.collapsed {
@@ -16,35 +32,157 @@
 
 /* Logo at the top */
 .logo {
-  font-size: 26px;
-  font-weight: bold;
-  margin-bottom: 15px;
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 20px;
   margin-top: 22px;
+  background: linear-gradient(135deg, #fff, #ffd700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
 
+.logo:hover {
+  transform: scale(1.1) rotate(-5deg);
+  filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.4));
 }
 
 /* Icons container with flex-grow to fill space */
 .menuIcons {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  font-size: 22px;
+  gap: 28px;
   cursor: pointer;
-  flex-grow: 1; /* pushes bottom icon down */
+  flex-grow: 1;
+}
+
+.menuIcons span {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.menuIcons span svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.menuIcons span::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  transform: scale(0);
+  transition: transform 0.3s ease;
+}
+
+.menuIcons span:hover {
+  color: rgba(255, 255, 255, 1);
+  transform: translateX(3px) scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menuIcons span:hover svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.3));
+}
+
+.menuIcons span:hover::before {
+  transform: scale(1);
 }
 
 /* Active icon highlight */
 .menuIcons span.activeIcon {
-  transform: scale(1.6);
-  color: #fff200;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2),
+              inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  animation: iconPulse 0.4s ease;
+}
+
+.menuIcons span.activeIcon svg {
+  filter: drop-shadow(0 0 12px rgba(255, 242, 0, 0.8));
+  animation: iconGlow 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1.15); }
+}
+
+@keyframes iconGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 242, 0, 0.6)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 242, 0, 1)); }
 }
 
 /* Bottom settings icon */
 .bottomIcon {
-  font-size: 22px;
   cursor: pointer;
-  margin-bottom: 10px; /* optional padding from bottom */
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.bottomIcon svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.bottomIcon::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  bottom: -5px;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.bottomIcon:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.bottomIcon:hover svg {
+  transform: rotate(90deg) scale(1.15);
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.3));
+}
+
+.bottomIcon:hover::after {
+  opacity: 1;
+}
+
+.bottomIcon.activeSetting {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.bottomIcon.activeSetting svg {
+  transform: rotate(180deg) scale(1.2);
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8));
 }
 
 /* Mobile responsiveness */

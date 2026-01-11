@@ -444,7 +444,7 @@ const getFriendsPosts = async (req, res) => {
   try {
     const user_id = req.user.user_id;
 
-    // Get friend IDs
+    // 1️⃣ Get friend IDs
     const friendsResult = await pool.query(
       `SELECT CASE
           WHEN user1_id = $1 THEN user2_id
@@ -458,13 +458,17 @@ const getFriendsPosts = async (req, res) => {
 
     if (friendIds.length === 0) return res.json({ posts: [] });
 
-    // Get posts along with whether current user liked
+    // 2️⃣ Get posts from friends
     const postsResult = await pool.query(
       `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $2
-              ) AS "userLiked"
+              ) AS "userLiked",
+              EXISTS (
+                SELECT 1 FROM saved_posts sp
+                WHERE sp.original_post_id = p.post_id AND sp.saved_by_user_id = $2
+              ) AS "userSaved"
        FROM posts p
        JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = ANY($1::int[])
@@ -474,7 +478,7 @@ const getFriendsPosts = async (req, res) => {
 
     const posts = postsResult.rows;
 
-    // Add images & reactions count
+    // 3️⃣ Attach images and reactions
     for (let post of posts) {
       const imagesResult = await pool.query(
         "SELECT image_url FROM post_images WHERE post_id = $1",
@@ -486,7 +490,9 @@ const getFriendsPosts = async (req, res) => {
         "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
         [post.post_id]
       );
-      post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
+      post.reactions = reactionsResult.rows[0]
+        ? Array(parseInt(reactionsResult.rows[0].count)).fill({})
+        : [];
     }
 
     return res.json({ posts });
@@ -495,6 +501,7 @@ const getFriendsPosts = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 // Get a single post by ID
@@ -538,12 +545,14 @@ const getMyPosts = async (req, res) => {
     const user_id = req.user.user_id;
 
     const postsResult = await pool.query(
-      `SELECT p.post_id, p.caption, p.created_at,
+      `SELECT p.post_id, p.caption, p.created_at, p.user_id,
+              u.username, u.profile_image,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $1
               ) AS "userLiked"
        FROM posts p
+       JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = $1
        ORDER BY p.created_at DESC`,
       [user_id]
@@ -628,6 +637,52 @@ const getNotifications = async (req, res) => {
   }
 };
 
+// Save a post
+const savePostController = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { post_id } = req.body;
+    if (!post_id) return res.status(400).json({ message: "Missing post_id" });
+
+    const saved = await userModel.savePost(user_id, post_id);
+    if (!saved) return res.status(200).json({ message: "Post already saved" });
+
+    return res.status(201).json({ message: "Post saved successfully", saved });
+  } catch (err) {
+    console.error("savePostController Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Unsave a post
+const unsavePostController = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { post_id } = req.body;
+    if (!post_id) return res.status(400).json({ message: "Missing post_id" });
+
+    const unsaved = await userModel.unsavePost(user_id, post_id);
+    if (!unsaved) return res.status(404).json({ message: "Post was not saved" });
+
+    return res.status(200).json({ message: "Post unsaved successfully" });
+  } catch (err) {
+    console.error("unsavePostController Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get saved posts
+const getSavedPostsController = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const savedPosts = await userModel.getSavedPostsByUser(user_id);
+    return res.status(200).json({ savedPosts });
+  } catch (err) {
+    console.error("getSavedPostsController Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 
 
@@ -658,4 +713,7 @@ module.exports = {
   reactToPost,
   reactToPostController,
   getNotifications,
+  savePostController,
+  unsavePostController,
+  getSavedPostsController,
 };

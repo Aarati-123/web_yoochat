@@ -1,22 +1,122 @@
-.myPostsWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+/* src/components/MyPostsFeed.css */
+
+.myPostsPanel {
+  width: 100%;
+  height: 100vh; /* full screen height */
+  overflow-y: auto; /* vertical scroll */
+  padding: 20px;
+  box-sizing: border-box;
+  background: var(--background);
 }
 
-.myPostCard {
-  background-color: #fff;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+.panelTitle {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+/* Individual post card */
+.postCard {
+  background: var(--card-bg);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  padding: 15px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.postCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.postHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.postAvatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
+}
+
+.postUsername {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.postTime {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .postCaption {
-  margin-bottom: 0.5rem;
+  margin-bottom: 12px;
+  color: var(--text);
 }
 
-.postImage {
-  max-width: 100%;
-  border-radius: 6px;
+/* Instagram-style horizontal scroll for post images */
+.postImages {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  margin-bottom: 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
+}
+
+.scrollImage {
+  flex: 0 0 auto; /* prevents shrinking */
+  width: 300px;   /* adjust width */
+  height: 300px;  /* square images like Instagram */
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  scroll-snap-align: start;
+}
+
+/* Hide scrollbar for cleaner look */
+.postImages::-webkit-scrollbar {
+  display: none;
+}
+.postImages {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Saved button styling */
+.saved-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 6px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.saved-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-1px);
+}
+
+.postActions {
+  display: flex;
+  gap: 10px;
 }

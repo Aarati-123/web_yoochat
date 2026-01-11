@@ -3,24 +3,40 @@
   display: flex;
   height: 100vh;
   width: 100%;
-  background-color: #f0f2f5;
+  background-color: var(--surface);
+  transition: background-color 0.3s ease;
 }
 
 /* LEFT PANEL: Friends List */
 .chatListPanel {
-  width: 280px;
-  border-right: 1px solid #ddd;
+  width: 350px; /* extended width */
+  border-right: 2px solid transparent;
+  background: 
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(180deg, #667eea, #764ba2, #ec4899) border-box;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 12px rgba(147, 51, 234, 0.08);
 }
 
 .chatSearchInput {
-  padding: 10px;
-  margin: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  padding: 12px 16px;
+  margin: 12px;
+  border-radius: 12px;
+  border: 2px solid transparent;
   font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.06);
+}
+
+.chatSearchInput:focus {
+  outline: none;
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.1), 0 4px 12px rgba(147, 51, 234, 0.15);
+  transform: translateY(-1px);
 }
 
 .chatFriendList {
@@ -31,26 +47,51 @@
 .chatFriendItem {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
+  margin: 4px 8px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background 0.2s;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text);
+  position: relative;
+}
+
+.chatFriendItem::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
 }
 
 .chatFriendItem:hover {
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.08), rgba(147, 51, 234, 0.04));
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.1);
 }
 
 .chatFriendItem.active {
-  background-color: #e6f7ff;
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(147, 51, 234, 0.08));
+  border-left: 3px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
 }
 
 .chatFriendAvatar {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin-right: 12px;
   object-fit: cover;
+  border: 3px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
+  transition: transform 0.3s ease;
+}
+
+.chatFriendItem:hover .chatFriendAvatar {
+  transform: scale(1.05);
 }
 
 .chatFriendName {
@@ -63,28 +104,63 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  background-color: var(--surface);
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+/* Placeholder (no friend selected) */
+.chatConversationPanel .chatPlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #4b0082;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Chat window active: fills right panel */
+.chatConversationPanel.chatWindowActive {
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 /* Top bar with friend info */
 .chatTopBar {
   display: flex;
   align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid #ddd;
-  background-color: #f7f7f7;
+  padding: 16px 20px;
+  border-bottom: 2px solid transparent;
+  background: 
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    linear-gradient(90deg, #667eea, #764ba2, #ec4899) border-box;
+  color: var(--text);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(147, 51, 234, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .chatTopBar img {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin-right: 12px;
+  border: 3px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #667eea, #764ba2) border-box;
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.2);
 }
 
 .chatTopBar span {
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 17px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Messages area */
@@ -92,7 +168,8 @@
   flex: 1;
   padding: 15px;
   overflow-y: auto;
-  background-color: #f0f2f5;
+  background: var(--background);
+  transition: background 0.3s ease;
 }
 
 /* Individual message */
@@ -112,46 +189,115 @@
 
 .messageBubble {
   max-width: 60%;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background-color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(147, 51, 234, 0.06);
   font-size: 14px;
+  color: var(--text);
+  transition: all 0.3s ease;
+  position: relative;
+  border: 1px solid rgba(147, 51, 234, 0.1);
+}
+
+.messageBubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(147, 51, 234, 0.1);
 }
 
 /* Sent message */
 .messageItem.sent .messageBubble {
-  background-color: #d2f8d2;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.3), 0 4px 16px rgba(147, 51, 234, 0.15);
 }
 
 /* Message input */
 .chatInputContainer {
   display: flex;
-  padding: 10px;
-  border-top: 1px solid #ddd;
-  background-color: #f7f7f7;
+  padding: 16px;
+  border-top: 2px solid transparent;
+  background: 
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    linear-gradient(90deg, #667eea, #764ba2, #ec4899) border-box;
+  transition: all 0.3s ease;
+  box-shadow: 0 -2px 12px rgba(147, 51, 234, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .chatInputContainer input {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 20px;
-  border: 1px solid #ccc;
+  padding: 12px 18px;
+  border-radius: 24px;
+  border: 2px solid transparent;
+  background: var(--input-bg);
+  color: var(--text);
   outline: none;
   font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.06);
+}
+
+.chatInputContainer input:focus {
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.1), 0 4px 12px rgba(147, 51, 234, 0.15);
+  transform: translateY(-1px);
 }
 
 .chatInputContainer button {
-  margin-left: 10px;
-  padding: 10px 15px;
+  margin-left: 12px;
+  padding: 12px 24px;
   border: none;
-  background-color: #1890ff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  border-radius: 20px;
+  border-radius: 24px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+  letter-spacing: 0.5px;
 }
 
 .chatInputContainer button:hover {
-  background-color: #40a9ff;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4);
+}
+
+.chatInputContainer button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.3);
+}
+
+/* Placeholder content */
+.chatPlaceholder h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.chatPlaceholder p {
+  font-size: 16px;
+  color: #666;
+}
+
+/* Floating bubbles animation */
+.bubblesContainer {
+  display: flex;
+  gap: 15px;
+}
+
+.bubble {
+  font-size: 2rem;
+  animation: floatBubble 2s infinite ease-in-out;
+}
+
+.bubble:nth-child(2) { animation-delay: 0.3s; }
+.bubble:nth-child(3) { animation-delay: 0.6s; }
+.bubble:nth-child(4) { animation-delay: 0.9s; }
+
+@keyframes floatBubble {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
 }

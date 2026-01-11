@@ -20,12 +20,19 @@ function ChatWindow({ user }) {
   useEffect(() => {
     if (!user) return;
 
+    // Fetch messages immediately
     const fetchMessages = async () => {
       const msgs = await getMessages(user.user_id);
       setMessages(msgs);
     };
 
     fetchMessages();
+
+    // Poll for new messages every 2 seconds
+    const interval = setInterval(fetchMessages, 2000);
+
+    // Cleanup interval on unmount or when user changes
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
