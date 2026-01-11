@@ -95,4 +95,34 @@ router.post("/feed/unsavePost", verifyToken, controller.unsavePostController);
 router.get("/feed/saved", verifyToken, controller.getSavedPostsController);
 
 
+
+
+
+
+
+// ================================= ADMIN ==================================
+
+// ------------------------USER MANAGEMENT -------------------------------
+// Get all users (for admin panel)
+router.get("/admin/users", controller.getAllUsers); 
+
+// Delete a user by ID
+router.delete("/admin/users/:user_id", controller.deleteUser);
+
+// Update user details (admin can update username/email/profile image)
+router.put("/admin/users/:user_id", upload.single("profileImage"), controller.updateUserByAdmin);
+
+
+//--------------------- Reporting feature------------
+router.post("/report-message", verifyToken, controller.reportMessages);
+
+// =================== ADMIN REPORTS ===================
+router.get("/admin/reported-messages", controller.getReportedMessages);
+
+// Admin updates status of a report
+router.patch("/admin/reported-messages/:reportId", controller.updateReportStatus);
+
+//Warning the user
+router.post("/admin/users/:user_id/warn", controller.warnUser);
+
 module.exports = router;

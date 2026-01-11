@@ -4,8 +4,13 @@ const jwt = require("jsonwebtoken");
 const userModel = require("../models/model");
 const { pool } = require("../models/model"); 
 const reactToPost = require("../models/model");
+const { sendAdminWarningNotification } = require("../models/model");
 
-
+// const { userModel,
+//         pool,
+//         reactToPost,
+//         sendAdminWarningNotification
+//       } = require("../models/model"); 
 
 const hillKey = process.env.HILL_KEY;
 if (!hillKey || hillKey.length !== 4) {
@@ -686,6 +691,243 @@ const getSavedPostsController = async (req, res) => {
 
 
 
+
+// =========================== ADMIN =============================
+
+//---------- UserManagement ----------
+// Get all users for admin
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT user_id, username, email, profile_image, created_at 
+       FROM users 
+       ORDER BY created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Delete a user
+const deleteUser = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    await pool.query("DELETE FROM users WHERE user_id = $1", [user_id]);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+// Update user by admin
+const updateUserByAdmin = async (req, res) => {
+  const { user_id } = req.params;
+  const { username, email } = req.body;
+  const profile_image = req.file ? req.file.filename : null;
+
+  try {
+    const query = `
+      UPDATE users 
+      SET username = $1, email = $2 ${profile_image ? ", profile_image = $3" : ""} 
+      WHERE user_id = $4 RETURNING *`;
+    const values = profile_image ? [username, email, profile_image, user_id] : [username, email, user_id];
+    const result = await pool.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// -------Report Feature------
+
+
+// -------------------- Report in Webapp--------------------
+const reportMessages = async (req, res) => {
+  try {
+    const reported_by = req.user.user_id; // from JWT middleware
+    const { reported_about, reason, message_ids } = req.body;
+
+    // Basic validations
+    if (!reported_about || !reason || !Array.isArray(message_ids) || message_ids.length === 0) {
+      return res.status(400).json({ message: "Invalid report data" });
+    }
+
+    // Optional: verify messages belong to this conversation
+    const checkQuery = `
+      SELECT message_id
+      FROM message
+      WHERE message_id = ANY($1)
+        AND (
+          (sender_id = $2 AND receiver_id = $3)
+          OR
+          (sender_id = $3 AND receiver_id = $2)
+        )
+    `;
+
+    const checkResult = await pool.query(checkQuery, [
+      message_ids,
+      reported_by,
+      reported_about,
+    ]);
+
+    if (checkResult.rowCount !== message_ids.length) {
+      return res.status(403).json({ message: "Invalid message selection" });
+    }
+
+    // Insert report
+    await pool.query(
+      `
+      INSERT INTO reported_messages
+      (reported_by, reported_about, reason, message_ids)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [reported_by, reported_about, reason, message_ids]
+    );
+
+    return res.status(201).json({ message: "Messages reported successfully" });
+  } catch (err) {
+    console.error("Report Messages Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// -------------------- Admin: Get Reported Messages --------------------
+const getReportedMessages = async (req, res) => {
+  try {
+    const reportResult = await pool.query(`
+      SELECT 
+        rm.report_id,
+        rm.report_date,
+        rm.reason,
+        rm.message_ids,
+        rm.status,
+        rm.reported_about, 
+        u1.username AS reported_by_username,
+        u2.username AS reported_about_username,
+        u2.warning_count AS warning_count,
+        u2.ban_count AS ban_count
+      FROM reported_messages rm
+      JOIN users u1 ON rm.reported_by = u1.user_id
+      JOIN users u2 ON rm.reported_about = u2.user_id
+      ORDER BY rm.report_date DESC
+    `);
+
+    const reports = reportResult.rows;
+
+    // collect all message IDs
+    const allMessageIds = reports
+      .flatMap(r => r.message_ids || [])
+      .filter(Boolean);
+
+    let messagesMap = {};
+
+    if (allMessageIds.length > 0) {
+      const msgResult = await pool.query(
+        `
+        SELECT 
+          m.message_id,
+          m.content,
+          s.username AS sender_username,
+          r.username AS receiver_username
+        FROM message m
+        JOIN users s ON m.sender_id = s.user_id
+        JOIN users r ON m.receiver_id = r.user_id
+        WHERE m.message_id = ANY($1::int[])
+        `,
+        [allMessageIds]
+      );
+
+      msgResult.rows.forEach(msg => {
+        let decrypted = "[Unable to decrypt]";
+        try {
+          decrypted = decryptHill(msg.content, process.env.HILL_KEY);
+        } catch (e) {
+          console.error("Decryption failed:", e.message);
+        }
+
+        messagesMap[msg.message_id] = {
+          message_id: msg.message_id,
+          sender_username: msg.sender_username,
+          receiver_username: msg.receiver_username,
+          content: decrypted
+        };
+      });
+    }
+
+    // attach messages to each report
+    reports.forEach(report => {
+      report.messages = (report.message_ids || [])
+        .map(id => messagesMap[id])
+        .filter(Boolean);
+
+         if (!report.status) {
+    report.status = "Pending"; // fallback
+  }
+    });
+
+    res.json(reports);
+  } catch (err) {
+    console.error("Fetch Reported Messages Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// -------------------- Admin: Update Report Status --------------------
+const updateReportStatus = async (req, res) => {
+  const { reportId } = req.params;
+  const { status } = req.body;
+
+  // validate status
+  const validStatuses = ["Pending", "Dismissed", "Valid"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status value" });
+  }
+
+  try {
+    await pool.query(
+      "UPDATE reported_messages SET status = $1 WHERE report_id = $2",
+      [status, reportId]
+    );
+
+    res.json({ success: true, reportId, status });
+  } catch (err) {
+    console.error("Update Report Status Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+//--------------- INSERT WARNING IN NOTIFICATION--------------
+
+const warnUser = async (req, res) => {
+  console.log("WARN PARAMS:", req.params)
+  const { user_id } = req.params;
+
+  try {
+    // Increment warning_count
+    const updatedUser = await pool.query(
+      `UPDATE users
+       SET warning_count = warning_count + 1
+       WHERE user_id = $1
+       RETURNING warning_count`,
+      [user_id]
+    );
+
+    // Send admin notification
+    await sendAdminWarningNotification(user_id);
+
+    res.json({ success: true, warning_count: updatedUser.rows[0].warning_count });
+  } catch (err) {
+    console.error("Warn User Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -716,4 +958,11 @@ module.exports = {
   savePostController,
   unsavePostController,
   getSavedPostsController,
+  getAllUsers,
+  deleteUser,
+  updateUserByAdmin,
+  reportMessages,
+  getReportedMessages,
+  updateReportStatus,
+  warnUser,
 };

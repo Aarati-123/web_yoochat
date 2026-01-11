@@ -557,6 +557,25 @@ const getSavedPostsByUser = async (user_id) => {
 };
 
 
+// -------------------- Admin Warning Notifications --------------------
+
+const ADMIN_ID = 1; // from admin table
+
+const sendAdminWarningNotification = async (user_id) => {
+  const adminMessage = `
+    <strong>Community Guidelines Warning</strong><br/>
+    We have reviewed recent activity from your account following a user report and found content that does not align with our community guidelines.<br/>
+    Please ensure future interactions comply with our rules. Repeated violations may result in account restrictions.
+  `;
+
+  await createNotificationIfNotExists(
+    user_id,          
+    ADMIN_ID,         
+    "admin_warning",  // type
+    adminMessage,     
+    null              // post_id
+  );
+};
 
 
 // -------------------- Export --------------------
@@ -594,4 +613,5 @@ module.exports = {
   savePost,
   unsavePost,
   getSavedPostsByUser,
+  sendAdminWarningNotification
 };

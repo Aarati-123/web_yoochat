@@ -12,17 +12,17 @@ import {
 
 const Home = () => {
   // Sample data (replace with actual data from backend)
-  const registeredUsers = 1200;
-  const messagesToday = 356;
+  const registeredUsers = 10;
+  const messagesToday = 53;
 
   const activityData = [
-    { day: "Mon", users: 110 },
-    { day: "Tue", users: 150 },
-    { day: "Wed", users: 130 },
-    { day: "Thu", users: 90 },
-    { day: "Fri", users: 170 },
-    { day: "Sat", users: 200 },
-    { day: "Sun", users: 140 },
+    { day: "26-12-2025", users: 0 },
+    { day: "27-12-2025", users: 14 },
+    { day: "28-12-2025", users: 2 },
+    { day: "29-12-2025", users: 0 },
+    { day: "30-12-2025", users: 0 },
+    { day: "31-12-2025", users: 7 },
+    { day: "01-01-2026", users: 0 },
   ];
 
   return (
@@ -36,7 +36,7 @@ const Home = () => {
             <p className="number">{registeredUsers}</p>
           </div>
           <div className="info-box">
-            <h3>Messages Sent Today</h3>
+            <h3>Total Messages Sent</h3>
             <p className="number">{messagesToday}</p>
           </div>
         </div>

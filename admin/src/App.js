@@ -5,9 +5,8 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import UserManagement from "./pages/UserManagement";
-import ChatMonitoring from "./pages/ChatMonitoring";
-import ReportedAccounts from "./pages/ReportedAccounts";
-import GroupManagement from "./pages/GroupManagement";
+import BannedAccounts from "./pages/BannedAccounts";
+import ReportedMessages from "./pages/ReportedMessages";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("LoggedIn") === "true");
@@ -24,13 +23,12 @@ function App() {
           </>
         ) : (
           <>
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/" element={<Navigate to="/Home" replace />} />
+            <Route path="/Home" element={<Home />} />
             <Route path="/UserManagement" element={<UserManagement />} />
-            <Route path="/ChatMonitoring" element={<ChatMonitoring />} />
-            <Route path="/ReportedAccounts" element={<ReportedAccounts />} />
-            <Route path="/GroupManagement" element={<GroupManagement />} />
-            <Route path="*" element={<Navigate to="/home" replace />} />
+            <Route path="/ReportedMessages" element={<ReportedMessages />} />
+            <Route path="/BannedAccounts" element={<BannedAccounts />} />
+            <Route path="*" element={<Navigate to="/Home" replace />} />
           </>
         )}
       </Routes>

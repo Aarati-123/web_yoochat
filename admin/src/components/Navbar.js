@@ -6,7 +6,7 @@ import arrow from "../assets/arrowbutton.svg";
 import Homeicon from "../assets/homeicon.svg";
 import usericon from "../assets/usericon.svg";
 import chatbubble from "../assets/chatbubbleicon.svg";
-import groupicon from "../assets/groupicon.svg";
+//import groupicon from "../assets/groupicon.svg";
 import flagicon from "../assets/flagicon.svg";
 import logouticon from "../assets/logouticon.svg";
 
@@ -19,9 +19,8 @@ function Navbar({ setIsLoggedIn }) {
   const navItems = [
     { label: "Home", icon: Homeicon, path: "/home" },
     { label: "User Management", icon: usericon, path: "/UserManagement" },
-    { label: "Chat Monitoring", icon: chatbubble, path: "/ChatMonitoring" },
-    { label: "Reported Content", icon: flagicon, path: "/ReportedAccounts" },
-    { label: "Group Management", icon: groupicon, path: "/GroupManagement" },
+    { label: "Reported Messages", icon: flagicon, path: "/ReportedMessages" },
+    { label: "Banned Accounts", icon: chatbubble, path: "/BannedAccounts" },
   ];
 
   const handleLogout = () => {
