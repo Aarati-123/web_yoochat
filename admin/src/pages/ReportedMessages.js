@@ -161,7 +161,7 @@ const getStatusClass = (status) => {
 
                         <div className="user-stats">
                         <p> <strong>Warning Count:</strong> {report.warning_count} </p>
-                        <p> <strong>Ban Count:</strong> {report.ban_count} </p>
+                        {/* <p> <strong>Ban Count:</strong> {report.ban_count} </p> */}
                         </div>
 
                         <div className="admin-actions">
@@ -189,7 +189,7 @@ const getStatusClass = (status) => {
                                 >
                                  Warn User
                             </button>
-                          <button disabled>Ban User</button>
+                          {/* <button disabled>Ban User</button> */}
                         </div>
                       </div>
                     </td>
