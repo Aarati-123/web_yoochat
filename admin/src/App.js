@@ -5,7 +5,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import UserManagement from "./pages/UserManagement";
-// import BannedAccounts from "./pages/BannedAccounts";
+import BannedAccounts from "./pages/BannedAccounts";
 import ReportedMessages from "./pages/ReportedMessages";
 
 function App() {
@@ -27,7 +27,7 @@ function App() {
             <Route path="/Home" element={<Home />} />
             <Route path="/UserManagement" element={<UserManagement />} />
             <Route path="/ReportedMessages" element={<ReportedMessages />} />
-            {/* <Route path="/BannedAccounts" element={<BannedAccounts />} /> */}
+            <Route path="/BannedAccounts" element={<BannedAccounts />} />
             <Route path="*" element={<Navigate to="/Home" replace />} />
           </>
         )}

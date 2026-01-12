@@ -928,58 +928,6 @@ const warnUser = async (req, res) => {
   }
 };
 
-// =================== Admin Dashboard ===================
-
-const getAdminDashboard = async (req, res) => {
-  try {
-    // Count total users
-    const usersResult = await pool.query("SELECT COUNT(*) FROM users");
-    const totalUsers = Number(usersResult.rows[0].count);
-
-    // Count total messages
-    const messagesResult = await pool.query("SELECT COUNT(*) FROM message");
-    const totalMessages = Number(messagesResult.rows[0].count);
-
-    res.json({ totalUsers, totalMessages });
-  } catch (err) {
-    console.error("Dashboard fetch error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get message activity for the last 7 days
-const getMessagesActivity = async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        TO_CHAR(message_time::date, 'DD-MM-YYYY') AS day,
-        COUNT(*) AS messages
-      FROM message
-      WHERE message_time >= NOW() - INTERVAL '7 days'
-      GROUP BY message_time::date
-      ORDER BY message_time::date ASC
-    `);
-
-    // Fill missing days with 0
-    const today = new Date();
-    const activityData = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const day = new Date(today);
-      day.setDate(today.getDate() - i);
-
-      const dayStr = day.toLocaleDateString("en-GB"); // format: DD/MM/YYYY
-      const record = result.rows.find(r => r.day === dayStr) || { day: dayStr, messages: 0 };
-      activityData.push({ day: record.day, messages: Number(record.messages) });
-    }
-
-    res.json(activityData);
-  } catch (err) {
-    console.error("Error fetching message activity:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
 module.exports = {
   register,
   login,
@@ -1017,6 +965,4 @@ module.exports = {
   getReportedMessages,
   updateReportStatus,
   warnUser,
-  getAdminDashboard,
-  getMessagesActivity, 
 };
