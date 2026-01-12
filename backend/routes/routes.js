@@ -125,4 +125,11 @@ router.patch("/admin/reported-messages/:reportId", controller.updateReportStatus
 //Warning the user
 router.post("/admin/users/:user_id/warn", controller.warnUser);
 
+// Admin home page dashboard
+router.get("/admin/dashboard", controller.getAdminDashboard);
+
+// Dashboard activity chart
+router.get("/admin/messages-activity", controller.getMessagesActivity);
+
+
 module.exports = router;
