@@ -17,6 +17,14 @@ pool.connect((err, client, release) => {
   }
 });
 
+// Helper function to format profile image (return base64 if available, else path)
+const formatProfileImage = (user) => {
+  if (user.profile_image_data && user.profile_image_mime_type) {
+    return `data:${user.profile_image_mime_type};base64,${user.profile_image_data}`;
+  }
+  return user.profile_image;
+};
+
 
 const createNotificationIfNotExists = async (user_id, actor_id, type, message, post_id = null) => {
   try {
@@ -63,10 +71,14 @@ const findUserByEmail = async (email) => {
 
 const findUserByUsername = async (username) => {
   const result = await pool.query(
-    "SELECT user_id, username, email, profile_image, password FROM users WHERE username = $1",
+    "SELECT user_id, username, email, profile_image, profile_image_data, profile_image_mime_type, password FROM users WHERE username = $1",
     [username]
   );
-  return result.rows[0];
+  const user = result.rows[0];
+  if (user) {
+    user.profile_image = formatProfileImage(user);
+  }
+  return user;
 };
 
 const findUserIdByUsername = async (username) => {
@@ -79,16 +91,20 @@ const findUserIdByUsername = async (username) => {
 
 const findUserById = async (user_id) => {
   const result = await pool.query(
-    "SELECT user_id, username, email, profile_image FROM users WHERE user_id = $1",
+    "SELECT user_id, username, email, profile_image, profile_image_data, profile_image_mime_type FROM users WHERE user_id = $1",
     [user_id]
   );
-  return result.rows[0];
+  const user = result.rows[0];
+  if (user) {
+    user.profile_image = formatProfileImage(user);
+  }
+  return user;
 };
 
-const createUser = async (username, email, password, profileImagePath = null) => {
+const createUser = async (username, email, password, profileImagePath = null, profileImageData = null, profileImageMimeType = null) => {
   const result = await pool.query(
-    "INSERT INTO users (username, email, password, profile_image) VALUES ($1, $2, $3, $4) RETURNING user_id, username, email, profile_image",
-    [username, email, password, profileImagePath]
+    "INSERT INTO users (username, email, password, profile_image, profile_image_data, profile_image_mime_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, username, email, profile_image",
+    [username, email, password, profileImagePath, profileImageData, profileImageMimeType]
   );
   return result.rows[0];
 };
@@ -290,14 +306,16 @@ const BlockedUser = {
 };
 
 // -------------------- Update User --------------------
-const updateUser = async (user_id, newUsername, newProfileImagePath) => {
+const updateUser = async (user_id, newUsername, newProfileImagePath, profileImageData = null, profileImageMimeType = null) => {
   const result = await pool.query(
     `UPDATE users
      SET username = COALESCE($2, username),
-         profile_image = COALESCE($3, profile_image)
+         profile_image = COALESCE($3, profile_image),
+         profile_image_data = COALESCE($4, profile_image_data),
+         profile_image_mime_type = COALESCE($5, profile_image_mime_type)
      WHERE user_id = $1
      RETURNING user_id, username, email, profile_image`,
-    [user_id, newUsername, newProfileImagePath]
+    [user_id, newUsername, newProfileImagePath, profileImageData, profileImageMimeType]
   );
   return result.rows[0];
 };
@@ -347,10 +365,16 @@ const getPostsByUserIds = async (userIds, currentUserId) => {
 
   for (let post of posts) {
     const imagesResult = await pool.query(
-      "SELECT image_url FROM post_images WHERE post_id = $1",
+      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
       [post.post_id]
     );
-    post.images = imagesResult.rows.map(r => r.image_url);
+    post.images = imagesResult.rows.map(r => {
+      if (r.image_data) {
+        const mimeType = r.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${r.image_data}`;
+      }
+      return r.image_url;
+    });
 
     const reactionsResult = await pool.query(
       "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
@@ -426,10 +450,16 @@ const getPostById = async (post_id) => {
   const post = postResult.rows[0];
 
   const imagesResult = await pool.query(
-    "SELECT image_url FROM post_images WHERE post_id = $1",
+    "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
     [post.post_id]
   );
-  post.images = imagesResult.rows.map(r => r.image_url);
+  post.images = imagesResult.rows.map(r => {
+    if (r.image_data) {
+      const mimeType = r.mime_type || 'image/jpeg';
+      return `data:${mimeType};base64,${r.image_data}`;
+    }
+    return r.image_url;
+  });
 
   const reactionsResult = await pool.query(
     "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
@@ -453,10 +483,16 @@ const getPostsByUser = async (user_id) => {
   const posts = postsResult.rows;
   for (let post of posts) {
     const imagesResult = await pool.query(
-      "SELECT image_url FROM post_images WHERE post_id = $1",
+      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
       [post.post_id]
     );
-    post.images = imagesResult.rows.map(r => r.image_url);
+    post.images = imagesResult.rows.map(r => {
+      if (r.image_data) {
+        const mimeType = r.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${r.image_data}`;
+      }
+      return r.image_url;
+    });
 
     const reactionsResult = await pool.query(
       "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
@@ -516,7 +552,9 @@ const getSavedPostsByUser = async (user_id) => {
   const savedPostsResult = await pool.query(
     `SELECT sp.saved_id, sp.original_post_id, sp.created_at AS saved_at,
             p.user_id AS post_owner_id, p.caption, p.created_at AS post_created_at,
-            u.username AS post_owner_username, u.profile_image AS post_owner_profile_image
+            u.username AS post_owner_username, u.profile_image AS post_owner_profile_image,
+            u.profile_image_data AS post_owner_profile_image_data,
+            u.profile_image_mime_type AS post_owner_profile_image_mime_type
      FROM saved_posts sp
      JOIN posts p ON sp.original_post_id = p.post_id
      JOIN users u ON p.user_id = u.user_id
@@ -526,15 +564,30 @@ const getSavedPostsByUser = async (user_id) => {
   );
 
   const savedPosts = savedPostsResult.rows;
+  
+  // Format profile images
+  savedPosts.forEach(post => {
+    if (post.post_owner_profile_image_data && post.post_owner_profile_image_mime_type) {
+      post.post_owner_profile_image = `data:${post.post_owner_profile_image_mime_type};base64,${post.post_owner_profile_image_data}`;
+    }
+    delete post.post_owner_profile_image_data;
+    delete post.post_owner_profile_image_mime_type;
+  });
 
   // 2️⃣ Fetch images and reactions for each post
   for (let post of savedPosts) {
     // Images
     const imagesResult = await pool.query(
-      "SELECT image_url FROM post_images WHERE post_id = $1",
+      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
       [post.original_post_id]
     );
-    post.images = imagesResult.rows.map(r => r.image_url);
+    post.images = imagesResult.rows.map(r => {
+      if (r.image_data) {
+        const mimeType = r.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${r.image_data}`;
+      }
+      return r.image_url;
+    });
 
     // Reactions - just count total reactions
     const reactionsResult = await pool.query(

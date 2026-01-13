@@ -16,13 +16,17 @@ function MyPostsFeed() {
         const res = await getMyPosts();
         const formatted = (res.posts || []).map((post) => ({
           ...post,
-          images: (post.images || []).map((img) =>
-            img.startsWith("http") ? img : `${API_URL}/${img.replace(/\\/g, "/")}`
-          ),
+          images: (post.images || []).map((img) => {
+            if (img.startsWith("data:")) return img;
+            if (img.startsWith("http")) return img;
+            return `${API_URL}/${img.replace(/\\/g, "/")}`;
+          }),
           profile_image: post.profile_image
-            ? post.profile_image.startsWith("http")
+            ? post.profile_image.startsWith("data:")
               ? post.profile_image
-              : `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
+              : post.profile_image.startsWith("http")
+                ? post.profile_image
+                : `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
             : `${API_URL}/avatar2.png`,
         }));
         setMyPosts(formatted);

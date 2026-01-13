@@ -5,6 +5,7 @@ const userModel = require("../models/model");
 const { pool } = require("../models/model"); 
 const reactToPost = require("../models/model");
 const { sendAdminWarningNotification } = require("../models/model");
+const fs = require("fs").promises;
 
 // const { userModel,
 //         pool,
@@ -38,9 +39,19 @@ const register = async (req, res) => {
     if (existingEmail) return res.status(400).json({ message: "Email already registered" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const profileImagePath = req.file ? req.file.path : null;
+    
+    let profileImagePath = null;
+    let profileImageData = null;
+    let profileImageMimeType = null;
+    
+    if (req.file) {
+      profileImagePath = req.file.path;
+      const imageBuffer = await fs.readFile(req.file.path);
+      profileImageData = imageBuffer.toString('base64');
+      profileImageMimeType = req.file.mimetype || 'image/jpeg';
+    }
 
-    const user = await userModel.createUser(username, normalizedEmail, hashedPassword, profileImagePath);
+    const user = await userModel.createUser(username, normalizedEmail, hashedPassword, profileImagePath, profileImageData, profileImageMimeType);
 
     return res.status(201).json({
       message: "User registered successfully",
@@ -373,14 +384,24 @@ const updateUserProfile = async (req, res) => {
   try {
     const user_id = req.user.user_id; // from JWT
     const { username } = req.body;
-    const profileImagePath = req.file ? req.file.path : null;
+    
+    let profileImagePath = null;
+    let profileImageData = null;
+    let profileImageMimeType = null;
+    
+    if (req.file) {
+      profileImagePath = req.file.path;
+      const imageBuffer = await fs.readFile(req.file.path);
+      profileImageData = imageBuffer.toString('base64');
+      profileImageMimeType = req.file.mimetype || 'image/jpeg';
+    }
 
     // Optional: validate username (example: 3-20 chars)
     if (username && (username.length < 3 || username.length > 20)) {
       return res.status(400).json({ message: "Username must be 3-20 characters long" });
     }
 
-    const updatedUser = await userModel.updateUser(user_id, username, profileImagePath);
+    const updatedUser = await userModel.updateUser(user_id, username, profileImagePath, profileImageData, profileImageMimeType);
 
     return res.status(200).json({
       message: "Profile updated successfully!",
@@ -430,12 +451,23 @@ const createPost = async (req, res) => {
     );
     const post = postResult.rows[0];
 
-    // Insert images
+    // Insert images - store as base64
     for (let file of files) {
-      await pool.query(
-        "INSERT INTO post_images (post_id, image_url) VALUES ($1, $2)",
-        [post.post_id, file.path]
-      );
+      try {
+        const imageBuffer = await fs.readFile(file.path);
+        const base64Image = imageBuffer.toString('base64');
+        const mimeType = file.mimetype || 'image/jpeg';
+        
+        await pool.query(
+          "INSERT INTO post_images (post_id, image_url, image_data, mime_type) VALUES ($1, $2, $3, $4)",
+          [post.post_id, file.path, base64Image, mimeType]
+        );
+        
+        // Optionally delete the file after storing in DB
+        // await fs.unlink(file.path);
+      } catch (fileErr) {
+        console.error("Error processing file:", fileErr);
+      }
     }
 
     return res.status(201).json({ message: "Post created successfully", post_id: post.post_id });
@@ -466,6 +498,7 @@ const getFriendsPosts = async (req, res) => {
     // 2️⃣ Get posts from friends
     const postsResult = await pool.query(
       `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
+              u.profile_image_data, u.profile_image_mime_type,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $2
@@ -483,13 +516,30 @@ const getFriendsPosts = async (req, res) => {
 
     const posts = postsResult.rows;
 
+    // Format profile images
+    posts.forEach(post => {
+      if (post.profile_image_data && post.profile_image_mime_type) {
+        post.profile_image = `data:${post.profile_image_mime_type};base64,${post.profile_image_data}`;
+      }
+      delete post.profile_image_data;
+      delete post.profile_image_mime_type;
+    });
+
     // 3️⃣ Attach images and reactions
     for (let post of posts) {
       const imagesResult = await pool.query(
-        "SELECT image_url FROM post_images WHERE post_id = $1",
+        "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
         [post.post_id]
       );
-      post.images = imagesResult.rows.map(r => r.image_url);
+      post.images = imagesResult.rows.map(r => {
+        if (r.image_data) {
+          // Return base64 as data URL
+          const mimeType = r.mime_type || 'image/jpeg';
+          return `data:${mimeType};base64,${r.image_data}`;
+        }
+        // Fallback to old file path method
+        return r.image_url;
+      });
 
       const reactionsResult = await pool.query(
         "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
@@ -515,7 +565,8 @@ const getPostById = async (req, res) => {
     const { post_id } = req.params;
 
     const postResult = await pool.query(
-      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
+              u.profile_image_data, u.profile_image_mime_type
        FROM posts p
        JOIN users u ON p.user_id = u.user_id
        WHERE p.post_id = $1`,
@@ -525,12 +576,25 @@ const getPostById = async (req, res) => {
     if (postResult.rows.length === 0) return res.status(404).json({ message: "Post not found" });
 
     const post = postResult.rows[0];
+    
+    // Format profile image
+    if (post.profile_image_data && post.profile_image_mime_type) {
+      post.profile_image = `data:${post.profile_image_mime_type};base64,${post.profile_image_data}`;
+    }
+    delete post.profile_image_data;
+    delete post.profile_image_mime_type;
 
     const imagesResult = await pool.query(
-      "SELECT image_url FROM post_images WHERE post_id = $1",
+      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
       [post.post_id]
     );
-    post.images = imagesResult.rows.map(r => r.image_url);
+    post.images = imagesResult.rows.map(r => {
+      if (r.image_data) {
+        const mimeType = r.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${r.image_data}`;
+      }
+      return r.image_url;
+    });
 
     const reactionsResult = await pool.query(
       "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
@@ -551,7 +615,7 @@ const getMyPosts = async (req, res) => {
 
     const postsResult = await pool.query(
       `SELECT p.post_id, p.caption, p.created_at, p.user_id,
-              u.username, u.profile_image,
+              u.username, u.profile_image, u.profile_image_data, u.profile_image_mime_type,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $1
@@ -564,13 +628,28 @@ const getMyPosts = async (req, res) => {
     );
 
     const posts = postsResult.rows;
+    
+    // Format profile images
+    posts.forEach(post => {
+      if (post.profile_image_data && post.profile_image_mime_type) {
+        post.profile_image = `data:${post.profile_image_mime_type};base64,${post.profile_image_data}`;
+      }
+      delete post.profile_image_data;
+      delete post.profile_image_mime_type;
+    });
 
     for (let post of posts) {
       const imagesResult = await pool.query(
-        "SELECT image_url FROM post_images WHERE post_id = $1",
+        "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
         [post.post_id]
       );
-      post.images = imagesResult.rows.map(r => r.image_url);
+      post.images = imagesResult.rows.map(r => {
+        if (r.image_data) {
+          const mimeType = r.mime_type || 'image/jpeg';
+          return `data:${mimeType};base64,${r.image_data}`;
+        }
+        return r.image_url;
+      });
 
       const reactionsResult = await pool.query(
         "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",

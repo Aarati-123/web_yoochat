@@ -16,13 +16,17 @@ function SavedPostsFeed() {
         const res = await getSavedPosts();
         const formatted = (res || []).map((post) => ({
           ...post,
-          images: (post.images || []).map((img) =>
-            img.startsWith("http") ? img : `${API_URL}/${img.replace(/\\/g, "/")}`
-          ),
+          images: (post.images || []).map((img) => {
+            if (img.startsWith("data:")) return img;
+            if (img.startsWith("http")) return img;
+            return `${API_URL}/${img.replace(/\\/g, "/")}`;
+          }),
           profile_image: post.post_owner_profile_image
-            ? post.post_owner_profile_image.startsWith("http")
+            ? post.post_owner_profile_image.startsWith("data:")
               ? post.post_owner_profile_image
-              : `${API_URL}/${post.post_owner_profile_image.replace(/\\/g, "/")}`
+              : post.post_owner_profile_image.startsWith("http")
+                ? post.post_owner_profile_image
+                : `${API_URL}/${post.post_owner_profile_image.replace(/\\/g, "/")}`
             : `${API_URL}/avatar2.png`,
         }));
         setSavedPosts(formatted);

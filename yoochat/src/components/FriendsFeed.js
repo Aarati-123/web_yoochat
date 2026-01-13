@@ -21,13 +21,20 @@ function FriendsFeed() {
         if (res.posts) {
           formattedPosts = res.posts.map((post) => ({
             ...post,
-            images: (post.images || []).map((img) =>
-              img.startsWith("http") ? img : `${API_URL}/${img.replace(/\\/g, "/")}`
-            ),
+            images: (post.images || []).map((img) => {
+              // If it's a data URL (base64), return as-is
+              if (img.startsWith("data:")) return img;
+              // If it's an http URL, return as-is
+              if (img.startsWith("http")) return img;
+              // Otherwise, construct the full URL
+              return `${API_URL}/${img.replace(/\\/g, "/")}`;
+            }),
             profile_image: post.profile_image
-              ? post.profile_image.startsWith("http")
-                ? post.profile_image
-                : `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
+              ? post.profile_image.startsWith("data:")
+                ? post.profile_image  // Base64 data URL
+                : post.profile_image.startsWith("http")
+                  ? post.profile_image
+                  : `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
               : `${API_URL}/avatar2.png`,
             reactionsCount: post.reactions ? post.reactions.length : 0,
           }));
