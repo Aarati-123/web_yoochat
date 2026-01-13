@@ -353,35 +353,44 @@ const getPostsByUserIds = async (userIds, currentUserId) => {
             EXISTS (
               SELECT 1 FROM post_reactions pr 
               WHERE pr.post_id = p.post_id AND pr.user_id = $2
-            ) AS "userLiked"
+            ) AS "userLiked",
+            COALESCE(
+              (SELECT COUNT(*)::int FROM post_reactions WHERE post_id = p.post_id), 0
+            ) AS reaction_count,
+            COALESCE(
+              (SELECT json_agg(json_build_object(
+                'image_url', pi.image_url,
+                'image_data', pi.image_data,
+                'mime_type', pi.mime_type
+              ) ORDER BY pi.image_id)
+              FROM post_images pi WHERE pi.post_id = p.post_id),
+              '[]'::json
+            ) AS images_data
      FROM posts p
      JOIN users u ON p.user_id = u.user_id
      WHERE p.user_id = ANY($1::int[])
-     ORDER BY p.created_at DESC`,
+     ORDER BY p.created_at DESC
+     LIMIT 50`,
     [userIds, currentUserId]
   );
 
-  const posts = postsResult.rows;
-
-  for (let post of posts) {
-    const imagesResult = await pool.query(
-      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
-      [post.post_id]
-    );
-    post.images = imagesResult.rows.map(r => {
-      if (r.image_data) {
-        const mimeType = r.mime_type || 'image/jpeg';
-        return `data:${mimeType};base64,${r.image_data}`;
+  const posts = postsResult.rows.map(post => {
+    // Format images
+    post.images = (post.images_data || []).map(img => {
+      if (img.image_data) {
+        const mimeType = img.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${img.image_data}`;
       }
-      return r.image_url;
+      return img.image_url;
     });
+    delete post.images_data;
 
-    const reactionsResult = await pool.query(
-      "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
-      [post.post_id]
-    );
-    post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
-  }
+    // Format reactions
+    post.reactions = Array(post.reaction_count || 0).fill({});
+    delete post.reaction_count;
+
+    return post;
+  });
 
   return posts;
 };
@@ -472,7 +481,23 @@ const getPostById = async (post_id) => {
 
 const getPostsByUser = async (user_id) => {
   const postsResult = await pool.query(
-    `SELECT p.post_id, p.caption, p.created_at, u.username, u.profile_image
+    `SELECT p.post_id, p.caption, p.created_at, u.username, u.profile_image,
+            COALESCE(
+              (SELECT json_agg(json_build_object(
+                'reaction_type', pr.reaction_type
+              ))
+              FROM (SELECT reaction_type FROM post_reactions WHERE post_id = p.post_id) pr),
+              '[]'::json
+            ) AS reactions_data,
+            COALESCE(
+              (SELECT json_agg(json_build_object(
+                'image_url', pi.image_url,
+                'image_data', pi.image_data,
+                'mime_type', pi.mime_type
+              ) ORDER BY pi.image_id)
+              FROM post_images pi WHERE pi.post_id = p.post_id),
+              '[]'::json
+            ) AS images_data
      FROM posts p
      JOIN users u ON p.user_id = u.user_id
      WHERE p.user_id = $1
@@ -480,26 +505,23 @@ const getPostsByUser = async (user_id) => {
     [user_id]
   );
 
-  const posts = postsResult.rows;
-  for (let post of posts) {
-    const imagesResult = await pool.query(
-      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
-      [post.post_id]
-    );
-    post.images = imagesResult.rows.map(r => {
-      if (r.image_data) {
-        const mimeType = r.mime_type || 'image/jpeg';
-        return `data:${mimeType};base64,${r.image_data}`;
+  const posts = postsResult.rows.map(post => {
+    // Format images
+    post.images = (post.images_data || []).map(img => {
+      if (img.image_data) {
+        const mimeType = img.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${img.image_data}`;
       }
-      return r.image_url;
+      return img.image_url;
     });
+    delete post.images_data;
 
-    const reactionsResult = await pool.query(
-      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
-      [post.post_id]
-    );
-    post.reactions = reactionsResult.rows;
-  }
+    // Format reactions
+    post.reactions = post.reactions_data || [];
+    delete post.reactions_data;
+
+    return post;
+  });
 
   return posts;
 };
@@ -548,63 +570,60 @@ const unsavePost = async (user_id, post_id) => {
 
 // Get saved posts by user
 const getSavedPostsByUser = async (user_id) => {
-  // 1️⃣ Get all saved posts
   const savedPostsResult = await pool.query(
     `SELECT sp.saved_id, sp.original_post_id, sp.created_at AS saved_at,
             p.user_id AS post_owner_id, p.caption, p.created_at AS post_created_at,
             u.username AS post_owner_username, u.profile_image AS post_owner_profile_image,
             u.profile_image_data AS post_owner_profile_image_data,
-            u.profile_image_mime_type AS post_owner_profile_image_mime_type
+            u.profile_image_mime_type AS post_owner_profile_image_mime_type,
+            COALESCE(
+              (SELECT COUNT(*)::int FROM post_reactions WHERE post_id = p.post_id), 0
+            ) AS reaction_count,
+            EXISTS (
+              SELECT 1 FROM post_reactions WHERE post_id = p.post_id AND user_id = $1
+            ) AS "userLiked",
+            COALESCE(
+              (SELECT json_agg(json_build_object(
+                'image_url', pi.image_url,
+                'image_data', pi.image_data,
+                'mime_type', pi.mime_type
+              ) ORDER BY pi.image_id)
+              FROM post_images pi WHERE pi.post_id = p.post_id),
+              '[]'::json
+            ) AS images_data
      FROM saved_posts sp
      JOIN posts p ON sp.original_post_id = p.post_id
      JOIN users u ON p.user_id = u.user_id
      WHERE sp.saved_by_user_id = $1
-     ORDER BY sp.created_at DESC`,
+     ORDER BY sp.created_at DESC
+     LIMIT 50`,
     [user_id]
   );
 
-  const savedPosts = savedPostsResult.rows;
-  
-  // Format profile images
-  savedPosts.forEach(post => {
+  const savedPosts = savedPostsResult.rows.map(post => {
+    // Format profile images
     if (post.post_owner_profile_image_data && post.post_owner_profile_image_mime_type) {
       post.post_owner_profile_image = `data:${post.post_owner_profile_image_mime_type};base64,${post.post_owner_profile_image_data}`;
     }
     delete post.post_owner_profile_image_data;
     delete post.post_owner_profile_image_mime_type;
-  });
 
-  // 2️⃣ Fetch images and reactions for each post
-  for (let post of savedPosts) {
-    // Images
-    const imagesResult = await pool.query(
-      "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
-      [post.original_post_id]
-    );
-    post.images = imagesResult.rows.map(r => {
-      if (r.image_data) {
-        const mimeType = r.mime_type || 'image/jpeg';
-        return `data:${mimeType};base64,${r.image_data}`;
+    // Format images
+    post.images = (post.images_data || []).map(img => {
+      if (img.image_data) {
+        const mimeType = img.mime_type || 'image/jpeg';
+        return `data:${mimeType};base64,${img.image_data}`;
       }
-      return r.image_url;
+      return img.image_url;
     });
+    delete post.images_data;
 
-    // Reactions - just count total reactions
-    const reactionsResult = await pool.query(
-      "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
-      [post.original_post_id]
-    );
-    post.reactions = reactionsResult.rows[0]
-      ? Array(parseInt(reactionsResult.rows[0].count)).fill({})
-      : [];
+    // Format reactions
+    post.reactions = Array(post.reaction_count || 0).fill({});
+    delete post.reaction_count;
 
-    // Did the user like this post?
-    const userLikedResult = await pool.query(
-      "SELECT 1 FROM post_reactions WHERE post_id = $1 AND user_id = $2",
-      [post.original_post_id, user_id]
-    );
-    post.userLiked = userLikedResult.rows.length > 0;
-  }
+    return post;
+  });
 
   return savedPosts;
 };

@@ -495,10 +495,10 @@ const getFriendsPosts = async (req, res) => {
 
     if (friendIds.length === 0) return res.json({ posts: [] });
 
-    // 2️⃣ Get posts from friends
+    // 2️⃣ Get posts with images and reactions in a single optimized query
     const postsResult = await pool.query(
-      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
-              u.profile_image_data, u.profile_image_mime_type,
+      `SELECT p.post_id, p.user_id, p.caption, p.created_at, 
+              u.username, u.profile_image, u.profile_image_data, u.profile_image_mime_type,
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $2
@@ -506,49 +506,51 @@ const getFriendsPosts = async (req, res) => {
               EXISTS (
                 SELECT 1 FROM saved_posts sp
                 WHERE sp.original_post_id = p.post_id AND sp.saved_by_user_id = $2
-              ) AS "userSaved"
+              ) AS "userSaved",
+              COALESCE(
+                (SELECT COUNT(*)::int FROM post_reactions WHERE post_id = p.post_id), 0
+              ) AS reaction_count,
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'image_url', pi.image_url,
+                  'image_data', pi.image_data,
+                  'mime_type', pi.mime_type
+                ) ORDER BY pi.image_id)
+                FROM post_images pi WHERE pi.post_id = p.post_id),
+                '[]'::json
+              ) AS images_data
        FROM posts p
        JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = ANY($1::int[])
-       ORDER BY p.created_at DESC`,
+       ORDER BY p.created_at DESC
+       LIMIT 50`,
       [friendIds, user_id]
     );
 
-    const posts = postsResult.rows;
-
-    // Format profile images
-    posts.forEach(post => {
+    const posts = postsResult.rows.map(post => {
+      // Format profile images
       if (post.profile_image_data && post.profile_image_mime_type) {
         post.profile_image = `data:${post.profile_image_mime_type};base64,${post.profile_image_data}`;
       }
       delete post.profile_image_data;
       delete post.profile_image_mime_type;
-    });
 
-    // 3️⃣ Attach images and reactions
-    for (let post of posts) {
-      const imagesResult = await pool.query(
-        "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
-        [post.post_id]
-      );
-      post.images = imagesResult.rows.map(r => {
-        if (r.image_data) {
-          // Return base64 as data URL
-          const mimeType = r.mime_type || 'image/jpeg';
-          return `data:${mimeType};base64,${r.image_data}`;
+      // Format post images
+      post.images = (post.images_data || []).map(img => {
+        if (img.image_data) {
+          const mimeType = img.mime_type || 'image/jpeg';
+          return `data:${mimeType};base64,${img.image_data}`;
         }
-        // Fallback to old file path method
-        return r.image_url;
+        return img.image_url;
       });
+      delete post.images_data;
 
-      const reactionsResult = await pool.query(
-        "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
-        [post.post_id]
-      );
-      post.reactions = reactionsResult.rows[0]
-        ? Array(parseInt(reactionsResult.rows[0].count)).fill({})
-        : [];
-    }
+      // Format reactions as array
+      post.reactions = Array(post.reaction_count || 0).fill({});
+      delete post.reaction_count;
+
+      return post;
+    });
 
     return res.json({ posts });
   } catch (err) {
@@ -619,7 +621,19 @@ const getMyPosts = async (req, res) => {
               EXISTS (
                 SELECT 1 FROM post_reactions pr
                 WHERE pr.post_id = p.post_id AND pr.user_id = $1
-              ) AS "userLiked"
+              ) AS "userLiked",
+              COALESCE(
+                (SELECT COUNT(*)::int FROM post_reactions WHERE post_id = p.post_id), 0
+              ) AS reaction_count,
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'image_url', pi.image_url,
+                  'image_data', pi.image_data,
+                  'mime_type', pi.mime_type
+                ) ORDER BY pi.image_id)
+                FROM post_images pi WHERE pi.post_id = p.post_id),
+                '[]'::json
+              ) AS images_data
        FROM posts p
        JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = $1
@@ -627,36 +641,30 @@ const getMyPosts = async (req, res) => {
       [user_id]
     );
 
-    const posts = postsResult.rows;
-    
-    // Format profile images
-    posts.forEach(post => {
+    const posts = postsResult.rows.map(post => {
+      // Format profile images
       if (post.profile_image_data && post.profile_image_mime_type) {
         post.profile_image = `data:${post.profile_image_mime_type};base64,${post.profile_image_data}`;
       }
       delete post.profile_image_data;
       delete post.profile_image_mime_type;
-    });
 
-    for (let post of posts) {
-      const imagesResult = await pool.query(
-        "SELECT image_url, image_data, mime_type FROM post_images WHERE post_id = $1",
-        [post.post_id]
-      );
-      post.images = imagesResult.rows.map(r => {
-        if (r.image_data) {
-          const mimeType = r.mime_type || 'image/jpeg';
-          return `data:${mimeType};base64,${r.image_data}`;
+      // Format post images
+      post.images = (post.images_data || []).map(img => {
+        if (img.image_data) {
+          const mimeType = img.mime_type || 'image/jpeg';
+          return `data:${mimeType};base64,${img.image_data}`;
         }
-        return r.image_url;
+        return img.image_url;
       });
+      delete post.images_data;
 
-      const reactionsResult = await pool.query(
-        "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
-        [post.post_id]
-      );
-      post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
-    }
+      // Format reactions
+      post.reactions = Array(post.reaction_count || 0).fill({});
+      delete post.reaction_count;
+
+      return post;
+    });
 
     return res.json({ posts });
   } catch (err) {
